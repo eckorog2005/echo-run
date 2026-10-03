@@ -1,0 +1,501 @@
+<title>Echo Run</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;800&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one-screen arcade cabinet. Thin HUD strip on top, arena fills the rest, overlay card for title/death. Deliberately single dark theme. */
+:root {
+  --ink: #0c1320;
+  --panel: #121c2c;
+  --line: #22314a;
+  --text: #e8edf6;
+  --muted: #8494ac;
+  --self: #ff9b71;
+  --echo: #a99bff;
+  --orb: #ffd166;
+  --danger: #ff5d73;
+  --display: 'Unbounded', 'Arial Black', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { margin: 0; background: var(--ink); color: var(--text); font-family: var(--mono); }
+.app {
+  height: 100%; box-sizing: border-box; max-width: 1100px; margin: 0 auto;
+  display: flex; flex-direction: column; gap: 12px;
+  padding-inline: 16px; padding-block: 12px 16px;
+}
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(18px, 3vw, 24px); letter-spacing: .02em; margin: 0; text-wrap: balance; }
+h1 span { color: var(--echo); }
+.stats { display: flex; gap: 20px; align-items: center; }
+.stat { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.stat small { font-size: 10px; text-transform: uppercase; letter-spacing: .14em; color: var(--muted); }
+.stat b { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.stat.echoes b { color: var(--echo); }
+.icon-btn {
+  background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 8px;
+  font: 600 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; padding: 8px 10px; cursor: pointer;
+}
+.icon-btn:hover { color: var(--text); border-color: var(--muted); }
+.stage {
+  position: relative; flex: 1; min-height: 0; border-radius: 14px; overflow: hidden;
+  background: var(--panel); border: 1px solid var(--line); touch-action: none; user-select: none; -webkit-user-select: none;
+}
+canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.overlay {
+  position: absolute; inset: 0; display: grid; place-items: center; padding: 16px;
+  background: color-mix(in srgb, var(--ink) 62%, transparent);
+  overflow-y: auto;
+}
+.card { max-width: 400px; display: flex; flex-direction: column; gap: 14px; }
+.card h2 { font-family: var(--display); font-weight: 800; font-size: clamp(26px, 6vw, 38px); line-height: 1.05; margin: 0; text-wrap: balance; }
+.card h2 em { font-style: normal; color: var(--echo); }
+.card p { margin: 0; color: var(--muted); line-height: 1.6; font-size: 13px; }
+.card p strong { color: var(--text); font-weight: 600; }
+.legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 13px; }
+.legend li { display: grid; grid-template-columns: 14px 1fr; gap: 10px; align-items: center; }
+.dot { width: 12px; height: 12px; border-radius: 50%; }
+.dot.self { background: var(--self); }
+.dot.echo { background: var(--echo); }
+.dot.orb { background: var(--orb); box-shadow: 0 0 10px var(--orb); }
+.big { font-family: var(--display); font-weight: 800; font-size: 56px; line-height: 1; color: var(--orb); font-variant-numeric: tabular-nums; }
+.badge { align-self: flex-start; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink); background: var(--orb); padding: 4px 8px; border-radius: 4px; font-weight: 600; }
+.row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.primary {
+  font: 800 14px var(--display); letter-spacing: .04em; color: var(--ink); background: var(--self);
+  border: 0; border-radius: 10px; padding: 14px 22px; cursor: pointer;
+}
+.primary:hover { filter: brightness(1.08); }
+.primary:focus-visible, .icon-btn:focus-visible { outline: 2px solid var(--echo); outline-offset: 3px; }
+kbd { font: 600 11px var(--mono); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 2px 6px; color: var(--text); }
+.hint { font-size: 11px; color: var(--muted); }
+footer { font-size: 11px; color: var(--muted); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+@media (max-width: 480px) { .stats { gap: 14px; } .big { font-size: 44px; } }
+</style>
+
+<div class="app">
+  <header>
+    <h1>Echo<span>Run</span></h1>
+    <div class="stats">
+      <div class="stat"><small>Orbs</small><b id="score">0</b></div>
+      <div class="stat echoes"><small>Echoes</small><b id="echoes">0</b></div>
+      <div class="stat"><small>Best</small><b id="best">0</b></div>
+      <button class="icon-btn" id="mute" type="button" aria-pressed="false">Sound on</button>
+    </div>
+  </header>
+  <div class="stage" id="stage">
+    <canvas id="cv"></canvas>
+    <div class="overlay" id="overlay"></div>
+  </div>
+  <footer>
+    <span>Move with arrows or WASD. On touch, drag anywhere.</span>
+    <span>Shorter routes leave shorter echoes.</span>
+  </footer>
+</div>
+
+<script>
+(() => {
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const stage = document.getElementById('stage');
+  const overlay = document.getElementById('overlay');
+  const $score = document.getElementById('score');
+  const $echoes = document.getElementById('echoes');
+  const $best = document.getElementById('best');
+  const $mute = document.getElementById('mute');
+
+  const css = getComputedStyle(document.documentElement);
+  const C = {};
+  ['ink', 'panel', 'line', 'text', 'muted', 'self', 'echo', 'orb', 'danger'].forEach(k => C[k] = css.getPropertyValue('--' + k).trim());
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Tuning
+  const TICK = 1 / 60;
+  const SPEED = 380;          // world units per second
+  const PR = 13, GR = 13, OR = 15;
+  const ROUND = 7 * 60;       // ticks to reach the orb
+  const GRACE = 40;           // ticks at round start when echoes are harmless
+  const EDGE = 8;             // ticks at each end of an echo loop where it's harmless (it teleports there)
+
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  };
+
+  let W = 1000, H = 700;
+  const view = { s: 1, ox: 0, oy: 0, cw: 0, ch: 0, dpr: 1 };
+
+  function fit() {
+    const pad = 12;
+    view.s = Math.min((view.cw - pad * 2) / W, (view.ch - pad * 2) / H);
+    view.ox = (view.cw - W * view.s) / 2;
+    view.oy = (view.ch - H * view.s) / 2;
+  }
+  function resize() {
+    const r = stage.getBoundingClientRect();
+    view.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    view.cw = r.width; view.ch = r.height;
+    cv.width = Math.round(r.width * view.dpr);
+    cv.height = Math.round(r.height * view.dpr);
+    fit();
+  }
+  function pickWorld() {
+    const portrait = view.ch > view.cw * 1.1;
+    W = portrait ? 700 : 1000;
+    H = portrait ? 1000 : 700;
+    fit();
+  }
+  new ResizeObserver(resize).observe(stage);
+  resize();
+
+  // ---------- Audio ----------
+  let ac = null;
+  let muted = store.get('echo-muted', '0') === '1';
+  function ensureAudio() {
+    if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } }
+    if (ac && ac.state === 'suspended') ac.resume();
+  }
+  function tone(f, delay, dur, type = 'sine', vol = 0.07, f2) {
+    if (muted || !ac) return;
+    const t0 = ac.currentTime + delay;
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(f, t0);
+    if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + dur);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g).connect(ac.destination);
+    o.start(t0); o.stop(t0 + dur + 0.02);
+  }
+  const SCALE = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24];
+  function sndPickup(n) {
+    const base = 330 * Math.pow(2, SCALE[n % SCALE.length] / 12);
+    tone(base, 0, 0.12, 'triangle', 0.08);
+    tone(base * 1.5, 0.06, 0.18, 'triangle', 0.06);
+    tone(base / 2, 0.1, 0.35, 'sine', 0.04, base / 4); // the echo being born
+  }
+  function sndDeath() { tone(220, 0, 0.6, 'sawtooth', 0.06, 40); tone(110, 0.02, 0.5, 'square', 0.03, 30); }
+  function sndStart() { tone(440, 0, 0.08, 'triangle', 0.05); tone(660, 0.07, 0.12, 'triangle', 0.05); }
+  function renderMute() { $mute.textContent = muted ? 'Sound off' : 'Sound on'; $mute.setAttribute('aria-pressed', String(muted)); }
+  $mute.addEventListener('click', () => { muted = !muted; store.set('echo-muted', muted ? '1' : '0'); renderMute(); ensureAudio(); });
+  renderMute();
+
+  // ---------- Input ----------
+  const keys = new Set();
+  const KEYMAP = { ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r', ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd' };
+  window.addEventListener('keydown', e => {
+    if (KEYMAP[e.code]) { keys.add(KEYMAP[e.code]); e.preventDefault(); }
+    if ((e.code === 'Space' || e.code === 'Enter') && mode !== 'play' && !overlay.hidden && e.target.tagName !== 'BUTTON') {
+      e.preventDefault(); startRun();
+    }
+  });
+  window.addEventListener('keyup', e => { if (KEYMAP[e.code]) keys.delete(KEYMAP[e.code]); });
+  window.addEventListener('blur', () => { keys.clear(); joy.active = false; });
+
+  const JOY_R = 38;
+  const joy = { active: false, id: null, ax: 0, ay: 0, x: 0, y: 0 };
+  function localPt(e) { const r = stage.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+  stage.addEventListener('pointerdown', e => {
+    if (mode !== 'play' || joy.active) return;
+    const p = localPt(e);
+    joy.active = true; joy.id = e.pointerId; joy.ax = joy.x = p.x; joy.ay = joy.y = p.y;
+    try { stage.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+  stage.addEventListener('pointermove', e => {
+    if (!joy.active || e.pointerId !== joy.id) return;
+    const p = localPt(e);
+    joy.x = p.x; joy.y = p.y;
+    // drag the anchor along so reversing direction is instant
+    const dx = joy.x - joy.ax, dy = joy.y - joy.ay, len = Math.hypot(dx, dy);
+    if (len > JOY_R) { joy.ax = joy.x - dx / len * JOY_R; joy.ay = joy.y - dy / len * JOY_R; }
+  });
+  const endJoy = e => { if (e.pointerId === joy.id) joy.active = false; };
+  stage.addEventListener('pointerup', endJoy);
+  stage.addEventListener('pointercancel', endJoy);
+
+  function inputDir() {
+    let x = (keys.has('r') ? 1 : 0) - (keys.has('l') ? 1 : 0);
+    let y = (keys.has('d') ? 1 : 0) - (keys.has('u') ? 1 : 0);
+    if (x || y) { const l = Math.hypot(x, y); return { x: x / l, y: y / l }; }
+    if (joy.active) {
+      const dx = joy.x - joy.ax, dy = joy.y - joy.ay, len = Math.hypot(dx, dy);
+      if (len > 5) { const m = Math.min(len, JOY_R) / JOY_R; return { x: dx / len * m, y: dy / len * m }; }
+    }
+    return { x: 0, y: 0 };
+  }
+
+  // ---------- Game state ----------
+  let mode = 'title';
+  let player = null, rec = [], ghosts = [], roundTick = 0, orb = null, score = 0;
+  let best = parseInt(store.get('echo-best', '0'), 10) || 0;
+  let particles = [], trail = [], shake = 0, killer = null, flash = 0;
+
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+  function updateHUD() {
+    $score.textContent = score;
+    $echoes.textContent = mode === 'title' ? 0 : ghosts.length;
+    $best.textContent = best;
+  }
+
+  function spawnOrb() {
+    const m = 50;
+    let pick = null;
+    for (let i = 0; i < 80; i++) {
+      const c = { x: rand(m, W - m), y: rand(m, H - m) };
+      const d = dist(c, player);
+      if (d < 240 || d > 620) continue;
+      // keep it off the start points of existing echoes so it isn't camped from frame one
+      if (ghosts.some(g => Math.hypot(g.path[0] - c.x, g.path[1] - c.y) < 60)) continue;
+      pick = c; break;
+    }
+    orb = pick || { x: W - player.x || W / 2, y: H - player.y || H / 2 };
+  }
+
+  function burst(x, y, color, n, speed = 260) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, s = rand(speed * 0.3, speed);
+      particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: rand(0.4, 0.9), max: 0.9, color, r: rand(1.5, 3.5) });
+    }
+  }
+
+  function startRun() {
+    ensureAudio(); sndStart();
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    pickWorld();
+    player = { x: W / 2, y: H / 2 };
+    rec = []; ghosts = []; roundTick = 0; score = 0; particles = []; trail = []; killer = null; shake = 0;
+    spawnOrb();
+    mode = 'play';
+    overlay.hidden = true;
+    updateHUD();
+  }
+
+  function collect() {
+    score++;
+    ghosts.push({ path: Float32Array.from(rec), n: score, x: rec[0], y: rec[1], live: false });
+    burst(orb.x, orb.y, C.orb, 26);
+    burst(player.x, player.y, C.echo, 14, 160);
+    flash = 1;
+    sndPickup(score);
+    rec = []; roundTick = 0; trail = [];
+    spawnOrb();
+    updateHUD();
+  }
+
+  function die(reason, g) {
+    mode = 'dead';
+    killer = g || null;
+    burst(player.x, player.y, C.danger, 44, 340);
+    burst(player.x, player.y, C.self, 20, 200);
+    shake = reduceMotion ? 0 : 18;
+    sndDeath();
+    const isBest = score > best;
+    if (isBest) { best = score; store.set('echo-best', String(best)); }
+    updateHUD();
+    setTimeout(() => { if (mode === 'dead') showDeath(reason, isBest); }, 750);
+  }
+
+  function advanceGhosts(check) {
+    for (const g of ghosts) {
+      const L = g.path.length / 2;
+      if (!L) continue;
+      const i = roundTick % L;
+      g.x = g.path[i * 2]; g.y = g.path[i * 2 + 1];
+      g.live = roundTick > GRACE && i >= EDGE && i < L - EDGE;
+      if (check && g.live && Math.hypot(g.x - player.x, g.y - player.y) < PR + GR - 5) {
+        die(`Caught by echo #${g.n}`, g);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function update() {
+    if (mode === 'play') {
+      const d = inputDir();
+      player.x = Math.max(PR, Math.min(W - PR, player.x + d.x * SPEED * TICK));
+      player.y = Math.max(PR, Math.min(H - PR, player.y + d.y * SPEED * TICK));
+      rec.push(player.x, player.y);
+      trail.push({ x: player.x, y: player.y });
+      if (trail.length > 14) trail.shift();
+      roundTick++;
+      if (!advanceGhosts(true)) {
+        if (dist(player, orb) < PR + OR) collect();
+        else if (roundTick >= ROUND) die('Out of time', null);
+      }
+    } else {
+      roundTick++;
+      advanceGhosts(false);
+    }
+    for (const p of particles) { p.x += p.vx * TICK; p.y += p.vy * TICK; p.vx *= 0.94; p.vy *= 0.94; p.life -= TICK; }
+    particles = particles.filter(p => p.life > 0);
+    shake *= 0.88; if (shake < 0.3) shake = 0;
+    flash *= 0.9;
+  }
+
+  // ---------- Attract mode: a few looping demo echoes behind the title card ----------
+  function demoGhosts() {
+    W = 1000; H = 700; fit();
+    const out = [];
+    const specs = [[3, 2, 300, 210, 0], [2, 3, 360, 250, 1.3], [1, 2, 220, 280, 2.1], [4, 3, 400, 180, 0.6]];
+    specs.forEach(([a, b, rx, ry, ph], k) => {
+      const L = 420 + k * 60, path = new Float32Array(L * 2);
+      for (let i = 0; i < L; i++) {
+        const t = i / L * Math.PI * 2;
+        path[i * 2] = W / 2 + Math.sin(a * t + ph) * rx;
+        path[i * 2 + 1] = H / 2 + Math.sin(b * t) * ry;
+      }
+      out.push({ path, n: k + 1, x: 0, y: 0, live: true });
+    });
+    return out;
+  }
+
+  // ---------- Overlay ----------
+  function showTitle() {
+    overlay.innerHTML = `
+      <div class="card">
+        <h2>Outrun <em>yourself.</em></h2>
+        <p>Grab the orb. The route you took to reach it comes back as an <strong>echo</strong> that keeps repeating. Touch any echo and the run is over.</p>
+        <ul class="legend">
+          <li><span class="dot self"></span><span>You</span></li>
+          <li><span class="dot echo"></span><span>Your echoes, copying every move you made</span></li>
+          <li><span class="dot orb"></span><span>The orb. Reach it within 7 seconds</span></li>
+        </ul>
+        <div class="row">
+          <button class="primary" id="go" type="button">Start run</button>
+          <span class="hint">or press <kbd>Space</kbd></span>
+        </div>
+      </div>`;
+    overlay.hidden = false;
+    document.getElementById('go').addEventListener('click', startRun);
+  }
+  function showDeath(reason, isBest) {
+    const line = score === 0 ? 'No orbs this time.' : `You made ${score} echo${score === 1 ? '' : 'es'} before one got you.`;
+    overlay.innerHTML = `
+      <div class="card">
+        ${isBest && score > 0 ? '<span class="badge">New best</span>' : ''}
+        <h2>${reason}</h2>
+        <div class="big">${score}</div>
+        <p>${reason === 'Out of time' ? `The orb fades after 7 seconds. ${line}` : line} Best: <strong>${best}</strong>.</p>
+        <div class="row">
+          <button class="primary" id="go" type="button">Run again</button>
+          <span class="hint">or press <kbd>Space</kbd></span>
+        </div>
+      </div>`;
+    overlay.hidden = false;
+    document.getElementById('go').addEventListener('click', startRun);
+  }
+
+  // ---------- Render ----------
+  function circle(x, y, r) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); }
+
+  function draw(now) {
+    ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
+    ctx.fillStyle = C.panel;
+    ctx.fillRect(0, 0, view.cw, view.ch);
+
+    const sx = shake ? rand(-shake, shake) : 0, sy = shake ? rand(-shake, shake) : 0;
+    ctx.save();
+    ctx.translate(view.ox + sx, view.oy + sy);
+    ctx.scale(view.s, view.s);
+
+    // arena
+    ctx.fillStyle = C.ink;
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = C.line;
+    for (let x = 50; x < W; x += 50) for (let y = 50; y < H; y += 50) ctx.fillRect(x - 1, y - 1, 2, 2);
+    ctx.strokeStyle = C.line; ctx.lineWidth = 2;
+    ctx.strokeRect(1, 1, W - 2, H - 2);
+    if (flash > 0.02) { ctx.globalAlpha = flash * 0.08; ctx.fillStyle = C.echo; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
+
+    // echo routes
+    ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.strokeStyle = C.echo;
+    for (const g of ghosts) {
+      ctx.globalAlpha = g === killer ? 0.5 : 0.07;
+      ctx.beginPath();
+      for (let i = 0; i < g.path.length; i += 4) i ? ctx.lineTo(g.path[i], g.path[i + 1]) : ctx.moveTo(g.path[0], g.path[1]);
+      ctx.stroke();
+    }
+    // the echo you're laying down right now
+    if (mode === 'play' && rec.length > 4) {
+      ctx.globalAlpha = 0.3; ctx.strokeStyle = C.self; ctx.setLineDash([4, 8]);
+      ctx.beginPath();
+      for (let i = 0; i < rec.length; i += 4) i ? ctx.lineTo(rec[i], rec[i + 1]) : ctx.moveTo(rec[0], rec[1]);
+      ctx.stroke(); ctx.setLineDash([]);
+    }
+    ctx.globalAlpha = 1;
+
+    // orb with its countdown ring
+    if (orb && mode !== 'title') {
+      const left = Math.max(0, 1 - roundTick / ROUND);
+      const pulse = 1 + Math.sin(now / 160) * 0.08;
+      const col = left < 0.3 ? C.danger : C.orb;
+      ctx.globalAlpha = 0.18; ctx.fillStyle = C.orb; circle(orb.x, orb.y, OR * 2.2 * pulse); ctx.fill();
+      ctx.globalAlpha = 1; ctx.fillStyle = C.orb; circle(orb.x, orb.y, OR * pulse); ctx.fill();
+      ctx.strokeStyle = col; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(orb.x, orb.y, OR + 9, -Math.PI / 2, -Math.PI / 2 + left * Math.PI * 2); ctx.stroke();
+    }
+
+    // echoes
+    ctx.font = '600 11px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (const g of ghosts) {
+      if (g.x === undefined) continue;
+      if (g.live) {
+        ctx.globalAlpha = 0.25; ctx.fillStyle = g === killer ? C.danger : C.echo; circle(g.x, g.y, GR + 6); ctx.fill();
+        ctx.globalAlpha = 0.95; circle(g.x, g.y, GR); ctx.fill();
+        if (mode !== 'title') { ctx.globalAlpha = 1; ctx.fillStyle = C.ink; ctx.fillText(String(g.n), g.x, g.y + 0.5); }
+      } else {
+        ctx.globalAlpha = 0.45; ctx.strokeStyle = C.echo; ctx.lineWidth = 2; ctx.setLineDash([3, 4]);
+        circle(g.x, g.y, GR); ctx.stroke(); ctx.setLineDash([]);
+      }
+    }
+    ctx.globalAlpha = 1;
+
+    // player
+    if (mode === 'play') {
+      trail.forEach((t, i) => { ctx.globalAlpha = (i / trail.length) * 0.35; ctx.fillStyle = C.self; circle(t.x, t.y, PR * (0.4 + 0.6 * i / trail.length)); ctx.fill(); });
+      ctx.globalAlpha = 0.22; ctx.fillStyle = C.self; circle(player.x, player.y, PR + 7); ctx.fill();
+      ctx.globalAlpha = 1; circle(player.x, player.y, PR); ctx.fill();
+      ctx.fillStyle = C.text; circle(player.x, player.y, PR * 0.38); ctx.fill();
+    }
+
+    // particles
+    for (const p of particles) { ctx.globalAlpha = Math.max(0, p.life / p.max); ctx.fillStyle = p.color; circle(p.x, p.y, p.r); ctx.fill(); }
+    ctx.globalAlpha = 1;
+
+    // grace hint
+    if (mode === 'play' && roundTick <= GRACE && ghosts.length) {
+      ctx.fillStyle = C.muted; ctx.font = '600 13px "IBM Plex Mono", monospace';
+      ctx.globalAlpha = 1 - roundTick / GRACE;
+      ctx.fillText(`echo #${ghosts.length} joins`, W / 2, 28);
+      ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+
+    // touch joystick
+    if (joy.active && mode === 'play') {
+      ctx.strokeStyle = C.muted; ctx.globalAlpha = 0.5; ctx.lineWidth = 1.5;
+      circle(joy.ax, joy.ay, JOY_R); ctx.stroke();
+      ctx.fillStyle = C.muted; ctx.globalAlpha = 0.6; circle(joy.x, joy.y, 12); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // ---------- Loop ----------
+  ghosts = demoGhosts();
+  showTitle();
+  updateHUD();
+  let last = performance.now(), acc = 0;
+  function frame(now) {
+    acc += Math.min(0.1, (now - last) / 1000); last = now;
+    while (acc >= TICK) { update(); acc -= TICK; }
+    draw(now);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0c1320" />
+    <title>Echo Run</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;800&family=IBM+Plex+Mono:wght@400;600&display=swap" />
+  </head>
+  <body>
+    <div class="app">
+      <header>
+        <h1>Echo<span>Run</span></h1>
+        <span class="mode-chip" id="mode-chip"></span>
+        <div class="stats">
+          <div class="stat"><small>Orbs</small><b id="score">0</b></div>
+          <div class="stat echoes"><small>Echoes</small><b id="echoes">0</b></div>
+          <div class="stat"><small id="best-label">Best</small><b id="best">0</b></div>
+          <button class="icon-btn" id="mute" type="button" aria-pressed="false">Sound on</button>
+        </div>
+      </header>
+      <div class="stage" id="stage">
+        <canvas id="cv"></canvas>
+        <div class="overlay" id="overlay"></div>
+      </div>
+      <footer>
+        <span>Move with arrows or WASD. On touch, drag anywhere.</span>
+        <span>Shorter routes leave shorter echoes.</span>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
