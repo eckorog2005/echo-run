@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { dateKey, loadDaily, recordDaily } from './daily.ts';
-import { shareText } from './share.ts';
-import { memoryStore } from '../storage.ts';
+import { dateKey, loadDaily, recordDaily } from '../../src/game/daily.ts';
+import { shareText } from '../../src/game/share.ts';
+import { memoryStore } from '../../src/storage.ts';
 
 describe('daily', () => {
   it('formats local dates as YYYY-MM-DD', () => {

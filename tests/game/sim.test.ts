@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { EDGE_TICKS, GRACE_TICKS, ROUND_TICKS } from './constants.ts';
-import type { Echo, GameState, StepEvent, Vec } from './model.ts';
-import { advanceEchoes, createGame, step } from './sim.ts';
+import { EDGE_TICKS, GRACE_TICKS, ROUND_TICKS } from '../../src/game/constants.ts';
+import type { Echo, GameState, StepEvent, Vec } from '../../src/game/model.ts';
+import { advanceEchoes, createGame, step } from '../../src/game/sim.ts';
 
 /** Steers straight at a target each tick. */
 function toward(s: GameState, target: Vec): Vec {

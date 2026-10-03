@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Running a subset of tests
 
-- `npx vitest run src/game/sim.test.ts` runs one test file.
+- `npx vitest run tests/game/sim.test.ts` runs one test file.
 - `npx vitest run -t "<test name>"` runs tests whose name matches.
 
 ## Architecture: how the pieces connect

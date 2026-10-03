@@ -8,9 +8,9 @@ import {
   WALL_MARGIN,
   WORLD_H,
   WORLD_W,
-} from './constants.ts';
-import { CENTER, buildCourse, eraserAt, roundStart } from './orbs.ts';
-import type { Vec } from './model.ts';
+} from '../../src/game/constants.ts';
+import { CENTER, buildCourse, eraserAt, roundStart } from '../../src/game/orbs.ts';
+import type { Vec } from '../../src/game/model.ts';
 
 const dist = (a: Vec, b: Vec): number => Math.hypot(a.x - b.x, a.y - b.y);
 const inside = (p: Vec): boolean =>

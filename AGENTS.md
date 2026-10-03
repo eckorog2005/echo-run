@@ -33,7 +33,7 @@ Use strict TypeScript and keep `noUncheckedIndexedAccess`. Two-space indentation
 
 ## Testing Guidelines
 
-Tests use Vitest in a Node environment and sit beside the module they cover as `*.test.ts`. Every rule change or bug fix should include a regression test. Run both `npm test` and `npm run build`.
+Tests use Vitest in a Node environment and live in `tests/`, mirroring the `src/` path of the module they cover (`src/game/sim.ts` → `tests/game/sim.test.ts`). Every rule change or bug fix should include a regression test. Run both `npm test` and `npm run build`.
 
 ## Commit & Pull Request Guidelines
 

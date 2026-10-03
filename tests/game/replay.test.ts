@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { Replay } from './replay.ts';
-import { createGame, step } from './sim.ts';
-import type { GameState } from './model.ts';
+import { Replay } from '../../src/game/replay.ts';
+import { createGame, step } from '../../src/game/sim.ts';
+import type { GameState } from '../../src/game/model.ts';
 
 function playRounds(rounds: number): GameState {
   const s = createGame(3);

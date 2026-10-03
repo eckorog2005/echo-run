@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { hashString, mulberry32 } from './rng.ts';
-import { dailySeed } from './daily.ts';
+import { hashString, mulberry32 } from '../../src/game/rng.ts';
+import { dailySeed } from '../../src/game/daily.ts';
 
 describe('mulberry32', () => {
   it('produces the same sequence for the same seed', () => {
