@@ -18,6 +18,10 @@ export const EDGE_TICKS = 8; // echoes are harmless at each end of their loop, w
 // and replays exactly.
 export const INPUT_SCALE = 127;
 
+export const CARD_DELAY_TICKS = 45; // the death card appears this long after dying, while echoes keep looping
+export const REPLAY_SPEED = 3; // replay ticks per frame tick
+export const ERASER_BANNER_TICKS = 120; // how long the "eraser up" banner takes to fade
+
 export const ERASER_EVERY = 5; // an eraser appears on every 5th round
 
 export const WALL_MARGIN = 50;

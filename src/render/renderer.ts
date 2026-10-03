@@ -1,24 +1,8 @@
 import { ECHO_R, ERASER_R, ORB_R, PLAYER_R, WORLD_H, WORLD_W } from '../game/constants.ts';
-import type { Echo, Vec } from '../game/model.ts';
+import type { Vec } from '../game/model.ts';
+import type { Scene } from '../game/scene.ts';
 import { JOY_R, type Joystick } from '../input/input.ts';
 import type { Effects } from './particles.ts';
-
-/** Everything the renderer needs for one frame; built from live play, the replay, or the title demo. */
-export interface Scene {
-  echoes: readonly Echo[];
-  route: ArrayLike<number>;
-  routeLen: number;
-  player: Vec | null;
-  trail: readonly Vec[];
-  orb: Vec | null;
-  eraser: Vec | null;
-  /** Fraction of the round timer left, 0..1. */
-  timeLeft: number;
-  killerN: number | null;
-  numbered: boolean;
-  banner: string | null;
-  bannerAlpha: number;
-}
 
 type Palette = Record<'ink' | 'panel' | 'line' | 'text' | 'muted' | 'self' | 'echo' | 'orb' | 'danger' | 'erase', string>;
 
