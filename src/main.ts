@@ -63,7 +63,7 @@ function demoEchoes(): Echo[] {
       path[i * 2] = WORLD_W / 2 + Math.sin(a * t + ph) * rx;
       path[i * 2 + 1] = WORLD_H / 2 + Math.sin(b * t) * ry;
     }
-    return { n: k + 1, path, x: 0, y: 0, live: true, erasedAt: null };
+    return { n: k + 1, path, x: 0, y: 0, live: true };
   });
 }
 const demo = demoEchoes();
@@ -175,6 +175,7 @@ function showDeathCard(): void {
 function startReplay(): void {
   if (!game) return;
   replay = new Replay(game);
+  trail = [];
   screen = 'replay';
   fx.reset();
   overlay.hide();
@@ -223,16 +224,23 @@ function handle(events: StepEvent[], g: GameState): void {
   if (events.length) updateHUD();
 }
 
+function pushTrail(p: Vec): void {
+  trail.push({ ...p });
+  if (trail.length > 14) trail.shift();
+}
+
 function update(): void {
   if (screen === 'play' && game) {
     const events = step(game, input.direction());
-    trail.push({ ...game.player });
-    if (trail.length > 14) trail.shift();
+    pushTrail(game.player);
     handle(events, game);
   } else if (screen === 'dead' && game) {
     idle(game);
   } else if (screen === 'replay' && replay) {
-    for (let i = 0; i < 3; i++) replay.advance();
+    for (let i = 0; i < 3; i++) {
+      if (replay.advance().some((ev) => ev.type === 'collect')) trail = [];
+      if (!replay.state.over) pushTrail(replay.state.player);
+    }
     if (replay.done) endReplay();
   } else if (screen === 'title') {
     demoTick++;
@@ -247,19 +255,19 @@ const EMPTY: number[] = [];
 
 function scene(): Scene {
   if (screen === 'replay' && replay) {
-    const f = replay.frame();
+    const r = replay.state;
     return {
-      echoes: f.echoes,
-      route: f.path,
-      routeLen: f.pathLen,
-      player: f.player,
-      trail: f.trail,
-      orb: f.orb,
-      eraser: f.eraser,
-      timeLeft: Math.max(0, 1 - f.roundTick / ROUND_TICKS),
-      killerN: null,
+      echoes: r.echoes,
+      route: r.rec,
+      routeLen: r.rec.length,
+      player: r.player,
+      trail,
+      orb: r.orb,
+      eraser: r.eraser,
+      timeLeft: Math.max(0, 1 - r.roundTick / ROUND_TICKS),
+      killerN: r.cause?.kind === 'echo' ? r.cause.n : null,
       numbered: true,
-      banner: `Replay · round ${f.round + 1} of ${f.rounds} · tap to skip`,
+      banner: `Replay · round ${replay.round + 1} of ${replay.rounds} · tap to skip`,
       bannerAlpha: 1,
     };
   }

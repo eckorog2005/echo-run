@@ -3,6 +3,7 @@ import {
   EDGE_TICKS,
   ERASER_R,
   GRACE_TICKS,
+  INPUT_SCALE,
   KILL_SLACK,
   ORB_R,
   PLAYER_R,
@@ -30,7 +31,7 @@ export function createGame(seed: number): GameState {
     player: { ...CENTER },
     rec: [],
     echoes: [],
-    history: [],
+    inputs: [],
     orb: orbAt(course, 0),
     eraser: eraserAt(course, 0),
     over: false,
@@ -62,12 +63,21 @@ function die(s: GameState, cause: DeathCause): StepEvent {
   return { type: 'die', at: { ...s.player }, cause };
 }
 
+/** Snaps one axis of steering input to the input grid, as a whole step in -INPUT_SCALE..INPUT_SCALE. */
+export function quantize(v: number): number {
+  return Math.round(Math.max(-1, Math.min(1, v)) * INPUT_SCALE);
+}
+
 /** Advances the game one fixed tick. Deterministic: same seed and inputs give the same run. */
 export function step(s: GameState, input: Vec): StepEvent[] {
   if (s.over) return [];
   const events: StepEvent[] = [];
 
-  let { x: dx, y: dy } = input;
+  const qx = quantize(input.x);
+  const qy = quantize(input.y);
+  s.inputs.push(qx, qy);
+  let dx = qx / INPUT_SCALE;
+  let dy = qy / INPUT_SCALE;
   const len = Math.hypot(dx, dy);
   if (len > 1) {
     dx /= len;
@@ -87,10 +97,7 @@ export function step(s: GameState, input: Vec): StepEvent[] {
 
   if (s.eraser && dist(s.player, s.eraser) < PLAYER_R + ERASER_R) {
     const removed = s.echoes.shift() ?? null;
-    if (removed) {
-      removed.erasedAt = { round: s.round, roundTick: s.roundTick };
-      s.erased++;
-    }
+    if (removed) s.erased++;
     events.push({ type: 'erase', at: s.eraser, n: removed ? removed.n : null });
     s.eraser = null;
   }
@@ -103,10 +110,8 @@ export function step(s: GameState, input: Vec): StepEvent[] {
       x: s.rec[0] ?? s.player.x,
       y: s.rec[1] ?? s.player.y,
       live: false,
-      erasedAt: null,
     };
     s.echoes.push(echo);
-    s.history.push(echo);
     events.push({ type: 'collect', at: s.orb, n: s.score });
     s.rec = [];
     s.roundTick = 0;
