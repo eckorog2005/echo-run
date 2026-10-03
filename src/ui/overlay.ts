@@ -1,24 +1,6 @@
-import type { DailyRecord } from '../game/daily.ts';
+import type { RunResult, TitleInfo } from '../game/session.ts';
 
 type Actions = Record<string, () => void>;
-
-export interface TitleInfo {
-  today: string;
-  daily: DailyRecord | null;
-  shareLine: string | null;
-}
-
-export interface DeathInfo {
-  mode: 'daily' | 'endless';
-  counted: boolean;
-  practice: boolean;
-  reason: string;
-  score: number;
-  erased: number;
-  best: number;
-  isBest: boolean;
-  shareLine: string | null;
-}
 
 const plural = (n: number, word: string, many = `${word}s`): string => `${n} ${n === 1 ? word : many}`;
 
@@ -109,25 +91,26 @@ export class Overlay {
     );
   }
 
-  showDeath(info: DeathInfo, actions: Actions): void {
-    const badge = info.counted
-      ? '<span class="badge">Daily result saved</span>'
-      : info.practice
-        ? '<span class="badge muted">Practice run</span>'
-        : info.isBest && info.score > 0
-          ? '<span class="badge">New best</span>'
-          : '';
+  showDeath(info: RunResult, actions: Actions): void {
+    const badge = {
+      counted: '<span class="badge">Daily result saved</span>',
+      practice: '<span class="badge muted">Practice run</span>',
+      newBest: '<span class="badge">New best</span>',
+      plain: '',
+    }[info.outcome.kind];
+    const reason = info.cause.kind === 'echo' ? `Caught by echo #${info.cause.n}` : 'Out of time';
+    const shareLine = info.outcome.kind === 'counted' ? info.outcome.shareLine : null;
     const made = info.score === 0 ? 'No orbs this time.' : `You made ${plural(info.score, 'echo', 'echoes')}`;
     const erasedNote = info.erased > 0 ? ` and erased ${info.erased}` : '';
-    const lead = info.reason === 'Out of time' ? 'The orb fades after 7 seconds. ' : '';
+    const lead = info.cause.kind === 'time' ? 'The orb fades after 7 seconds. ' : '';
     const bestNote = info.mode === 'endless' ? ` Best: <strong>${info.best}</strong>.` : '';
     this.show(
       `
       ${badge}
-      <h2>${info.reason}</h2>
+      <h2>${reason}</h2>
       <div class="big">${info.score}</div>
       <p>${lead}${made}${info.score === 0 ? '' : `${erasedNote}.`}${bestNote}</p>
-      ${info.shareLine ? shareBlock(info.shareLine) : ''}
+      ${shareLine ? shareBlock(shareLine) : ''}
       <div class="row">
         <button class="primary" type="button" data-action="again">Run again</button>
         <button class="secondary" type="button" data-action="replay">Watch replay</button>
