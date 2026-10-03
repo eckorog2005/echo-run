@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { EDGE_TICKS, GRACE_TICKS, ROUND_TICKS } from '../../src/game/constants.ts';
+import { EDGE_TICKS, GRACE_TICKS, INPUT_SCALE, ROUND_TICKS } from '../../src/game/constants.ts';
 import type { Echo, GameState, StepEvent, Vec } from '../../src/game/model.ts';
-import { advanceEchoes, createGame, step } from '../../src/game/sim.ts';
+import { advanceEchoes, createGame, quantize, step } from '../../src/game/sim.ts';
 
 /** Steers straight at a target each tick. */
 function toward(s: GameState, target: Vec): Vec {
@@ -21,7 +21,7 @@ function playUntil(s: GameState, done: (e: StepEvent[]) => boolean, pick: (s: Ga
 
 function echoAt(points: Vec[], n = 1): Echo {
   const path = new Float32Array(points.flatMap((p) => [p.x, p.y]));
-  return { n, path, x: 0, y: 0, live: false, erasedAt: null };
+  return { n, path, x: 0, y: 0, live: false };
 }
 
 describe('step', () => {
@@ -31,7 +31,6 @@ describe('step', () => {
     expect(ev[0]).toMatchObject({ type: 'collect', n: 1 });
     expect(s.score).toBe(1);
     expect(s.echoes).toHaveLength(1);
-    expect(s.history).toHaveLength(1);
     expect(s.roundTick).toBe(0);
     expect(s.rec).toHaveLength(0);
     expect(s.orb).toEqual(s.course.orbs[1]);
@@ -89,7 +88,31 @@ describe('step', () => {
     const b = run();
     expect(a.score).toBe(b.score);
     expect(a.player).toEqual(b.player);
-    expect(a.history.map((e) => Array.from(e.path))).toEqual(b.history.map((e) => Array.from(e.path)));
+    expect(a.inputs).toEqual(b.inputs);
+    expect(a.echoes.map((e) => Array.from(e.path))).toEqual(b.echoes.map((e) => Array.from(e.path)));
+  });
+
+  it('logs each tick of input, snapped to the input grid', () => {
+    const s = createGame(1);
+    step(s, { x: Math.SQRT1_2, y: -Math.SQRT1_2 });
+    step(s, { x: 0.3, y: 2 });
+    expect(s.inputs).toEqual([90, -90, 38, INPUT_SCALE]);
+  });
+
+  it('moves by the snapped input, not the raw one', () => {
+    const raw = createGame(1);
+    const snapped = createGame(1);
+    step(raw, { x: 0.3, y: 0 });
+    step(snapped, { x: 38 / INPUT_SCALE, y: 0 });
+    expect(raw.player).toEqual(snapped.player);
+  });
+});
+
+describe('quantize', () => {
+  it('clamps to the grid and is stable when re-applied', () => {
+    expect(quantize(-5)).toBe(-INPUT_SCALE);
+    expect(quantize(0)).toBe(0);
+    for (let q = -INPUT_SCALE; q <= INPUT_SCALE; q++) expect(quantize(q / INPUT_SCALE)).toBe(q);
   });
 });
 

@@ -10,7 +10,7 @@ This repository is a small TypeScript/Vite implementation of **Echo Run**, an ar
   - `model.ts` state, echo, and event types.
   - `rng.ts` seeded PRNG and string hash; `orbs.ts` builds a seeded course of orb and eraser positions.
   - `sim.ts` `step(state, input)` advances one tick and returns events; it is deterministic for a given seed and input log.
-  - `replay.ts` rebuilds frames of a finished run from its stored echo paths.
+  - `replay.ts` plays a finished run back by re-simulating it from its seed and input log.
   - `daily.ts` date keys, daily seeds, and the one-counted-attempt rule; `share.ts` builds the share line.
 - `src/render/` draws a `Scene` to canvas (`renderer.ts`) and owns visual-only particles and shake (`particles.ts`).
 - `src/input/`, `src/audio/`, `src/ui/` handle keyboard and drag joystick, WebAudio tones, and the overlay cards.
@@ -37,7 +37,7 @@ Tests use Vitest in a Node environment and live in `tests/`, mirroring the `src/
 
 ## Commit & Pull Request Guidelines
 
-Use short, imperative subjects (for example, `Add eraser pickup sound`) and keep each commit focused. Pull requests should describe the behavior change, list verification commands, and include a screenshot or clip for visible changes.
+Use [Conventional Commits](https://www.conventionalcommits.org/): `type(scope): summary`, with an imperative, lowercase summary and no trailing period (for example, `feat(audio): add eraser pickup sound`). Types: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `build`, `ci`, `chore`. The scope is optional and names the area touched, such as `sim`, `replay`, `session`, `render`, or `agents`. Mark breaking changes with `!` after the type or scope. Keep each commit focused. Pull requests should describe the behavior change, list verification commands, and include a screenshot or clip for visible changes.
 
 ## Agent skills
 

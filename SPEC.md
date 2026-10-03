@@ -24,4 +24,5 @@
 - **Daily:** the seed comes from the local date (`YYYY-MM-DD`), so everyone gets the same course. Only the first daily run each day is saved and produces a share line such as `Echo Run 2026-10-02 · 14 orbs · 2 erased · caught by #9`. Later daily runs that day are practice.
 
 ## Replay
-- After a run, "Watch replay" plays every round back at 3× speed from the stored routes, showing echoes joining and being erased in order. Tap, Space, or Escape skips it.
+- After a run, "Watch replay" plays every round back at 3× speed by re-simulating the run from its seed and input log, showing echoes joining and being erased in order, and highlighting the echo that ended the run. Tap, Space, or Escape skips it.
+- Steering input is snapped to steps of 1/127 per axis, in play and in replay, so a run's input log reproduces it exactly.

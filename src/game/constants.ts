@@ -14,6 +14,10 @@ export const ROUND_TICKS = 7 * 60; // time to reach the orb
 export const GRACE_TICKS = 40; // echoes are harmless at the start of each round
 export const EDGE_TICKS = 8; // echoes are harmless at each end of their loop, where they teleport
 
+// Steering input is snapped to whole steps of 1/INPUT_SCALE per axis, so a run's input log fits in an Int8Array
+// and replays exactly.
+export const INPUT_SCALE = 127;
+
 export const ERASER_EVERY = 5; // an eraser appears on every 5th round
 
 export const WALL_MARGIN = 50;

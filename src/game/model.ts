@@ -13,7 +13,6 @@ export interface Echo {
   x: number;
   y: number;
   live: boolean;
-  erasedAt: { round: number; roundTick: number } | null;
 }
 
 export type DeathCause = { kind: 'echo'; n: number } | { kind: 'time' };
@@ -32,8 +31,11 @@ export interface GameState {
   rec: number[];
   /** Echoes currently in play, oldest first. */
   echoes: Echo[];
-  /** Every echo ever made, including erased ones, in round order. */
-  history: Echo[];
+  /**
+   * Every tick's steering input as flat [x0, y0, x1, y1, ...] grid steps in
+   * -INPUT_SCALE..INPUT_SCALE. Together with `seed` this reproduces the run.
+   */
+  inputs: number[];
   orb: Vec;
   eraser: Vec | null;
   over: boolean;
