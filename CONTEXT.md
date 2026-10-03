@@ -6,7 +6,7 @@ An arcade game where every route you take to an orb comes back as a looping echo
 
 **Run**:
 One attempt from the first round until the player is caught or runs out of time. A run is fully determined by its seed and its input log.
-_Avoid_: Game (except for the `GameState` type), session, attempt
+_Avoid_: Game (except for the `GameState` type), attempt
 
 **Round**:
 The stretch of a run spent reaching one orb. It ends when the orb is collected or the round timer runs out.
@@ -45,6 +45,18 @@ A finished run played back by re-simulating it from its seed and input log.
 _Avoid_: Playback, rewind
 
 ## Modes and records
+
+**Session**:
+The player's visit from the title screen through any number of runs, death cards, and replays.
+_Avoid_: Game, app state
+
+**Death card**:
+The summary shown shortly after a run ends: how it ended, the score, and its outcome.
+_Avoid_: Game over screen, results screen
+
+**Outcome**:
+What a finished run meant for the player's records: a counted attempt (with its share line), a practice run, a new endless best, or none of these.
+_Avoid_: Result type, status
 
 **Endless**:
 The mode where each run gets a fresh random seed and only the best score is kept.
