@@ -37,7 +37,7 @@ Tests use Vitest in a Node environment and live in `tests/`, mirroring the `src/
 
 ## Commit & Pull Request Guidelines
 
-Use short, imperative subjects (for example, `Add eraser pickup sound`) and keep each commit focused. Pull requests should describe the behavior change, list verification commands, and include a screenshot or clip for visible changes.
+Use [Conventional Commits](https://www.conventionalcommits.org/): `type(scope): summary`, with an imperative, lowercase summary and no trailing period (for example, `feat(audio): add eraser pickup sound`). Types: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `build`, `ci`, `chore`. The scope is optional and names the area touched, such as `sim`, `replay`, `session`, `render`, or `agents`. Mark breaking changes with `!` after the type or scope. Keep each commit focused. Pull requests should describe the behavior change, list verification commands, and include a screenshot or clip for visible changes.
 
 ## Agent skills
 
