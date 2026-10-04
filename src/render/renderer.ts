@@ -3,15 +3,14 @@ import type { Vec } from '../game/model.ts';
 import type { Scene } from '../game/scene.ts';
 import { JOY_R, type Joystick } from '../input/input.ts';
 import type { Effects } from './particles.ts';
+import { fitArena, type ArenaView } from './view.ts';
 
 type Palette = Record<'ink' | 'panel' | 'line' | 'text' | 'muted' | 'self' | 'echo' | 'orb' | 'danger' | 'erase', string>;
 
 export class Renderer {
   private readonly ctx: CanvasRenderingContext2D;
   private readonly C: Palette;
-  private s = 1;
-  private ox = 0;
-  private oy = 0;
+  private view: ArenaView = { rotated: false, scale: 1, offsetX: 0, offsetY: 0 };
   private cw = 0;
   private ch = 0;
   private dpr = 1;
@@ -34,6 +33,10 @@ export class Renderer {
     return this.C;
   }
 
+  get rotated(): boolean {
+    return this.view.rotated;
+  }
+
   private resize(): void {
     const r = this.stage.getBoundingClientRect();
     this.dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -41,10 +44,7 @@ export class Renderer {
     this.ch = r.height;
     this.canvas.width = Math.round(r.width * this.dpr);
     this.canvas.height = Math.round(r.height * this.dpr);
-    const pad = 12;
-    this.s = Math.max(0.01, Math.min((this.cw - pad * 2) / WORLD_W, (this.ch - pad * 2) / WORLD_H));
-    this.ox = (this.cw - WORLD_W * this.s) / 2;
-    this.oy = (this.ch - WORLD_H * this.s) / 2;
+    this.view = fitArena(this.cw, this.ch);
   }
 
   private circle(x: number, y: number, r: number): void {
@@ -72,8 +72,14 @@ export class Renderer {
 
     const sh = fx.offset();
     ctx.save();
-    ctx.translate(this.ox + sh.x, this.oy + sh.y);
-    ctx.scale(this.s, this.s);
+    const { rotated, scale, offsetX, offsetY } = this.view;
+    if (rotated) {
+      ctx.translate(offsetX + WORLD_H * scale + sh.x, offsetY + sh.y);
+      ctx.rotate(Math.PI / 2);
+    } else {
+      ctx.translate(offsetX + sh.x, offsetY + sh.y);
+    }
+    ctx.scale(scale, scale);
 
     // Arena
     ctx.fillStyle = C.ink;

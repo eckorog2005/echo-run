@@ -6,6 +6,7 @@ import { Session, type Hud, type Mode, type SessionEvent } from './game/session.
 import { Input } from './input/input.ts';
 import { Effects } from './render/particles.ts';
 import { Renderer } from './render/renderer.ts';
+import { toArenaDirection } from './render/view.ts';
 import { browserStore } from './storage.ts';
 import { Overlay } from './ui/overlay.ts';
 
@@ -125,12 +126,17 @@ function handle(events: SessionEvent[]): void {
 // ---------- Loop ----------
 let last = performance.now();
 let acc = 0;
+let wasRotated = renderer.rotated;
 function frame(now: number): void {
   acc += Math.min(0.1, (now - last) / 1000);
   last = now;
+  if (renderer.rotated !== wasRotated) {
+    wasRotated = renderer.rotated;
+    input.joy.active = false;
+  }
   while (acc >= TICK) {
     const playing = session.screen === 'play';
-    const events = session.tick(input.direction());
+    const events = session.tick(toArenaDirection(input.direction(), renderer.rotated));
     // Effects only follow live play; the replay is silent, as before.
     if (playing || events.some((e) => e.type === 'card')) handle(events);
     fx.update(TICK);
