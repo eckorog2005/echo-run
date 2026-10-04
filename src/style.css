@@ -101,6 +101,20 @@ footer { font-size: 11px; color: var(--muted); display: flex; justify-content: s
   .icon-btn { padding: 6px 8px; }
 }
 
+/* Landscape phones: the arena is height-limited, so the HUD moves to a side column and the arena gets the full height. */
+@media (orientation: landscape) and (max-height: 480px) {
+  .app {
+    flex-direction: row; max-width: none; gap: 10px;
+    padding-block: calc(8px + env(safe-area-inset-top, 0px)) calc(8px + env(safe-area-inset-bottom, 0px));
+    padding-inline: calc(10px + env(safe-area-inset-left, 0px)) calc(10px + env(safe-area-inset-right, 0px));
+  }
+  header { flex: none; width: 128px; flex-direction: column; align-items: flex-start; flex-wrap: nowrap; gap: 8px; }
+  .mode-chip { border-radius: 8px; line-height: 1.4; }
+  .stats { flex-direction: column; align-items: flex-start; margin-left: 0; gap: 6px; width: 100%; }
+  .stat { flex-direction: row; align-items: baseline; justify-content: space-between; width: 100%; gap: 8px; }
+  .icon-btn { width: 100%; }
+}
+
 /* Touch screens have no Space key. */
 @media (hover: none) and (pointer: coarse) {
   .hint { display: none; }
