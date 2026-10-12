@@ -36,7 +36,7 @@ Checked in Chrome device emulation:
 Review follow-ups:
 
 - Done: mute is icon-only in landscape too, per the spec. `parsePadSide` is shared by the store and the toggle. `Renderer.setPadSide()` replaces the setter, and the title reads the side from the renderer. `MIN_PAD` became `MIN_PAD_SPAN`, since it is a height in portrait and a width in landscape.
-- Spec departure, following the mockup: in landscape the timer sits at the foot of the HUD column ("Round N", seconds left, and a bar), not between the arena and the pad, and the mode shows as the column's chip. Either update the spec or move the timer.
-- Open: CLAUDE.md's Persistence section doesn't list `echo-pad-side` (`src/render/padSide.ts`) yet.
-- Open, story 15: in landscape the death sheet covers most of the arena, so the echo that caught the player is usually hidden (see ticket 05's note for portrait).
+- Resolved: the landscape timer follows the mockup (at the foot of the HUD column), and the spec now says so.
+- Resolved: `echo-pad-side` is now listed in CLAUDE.md's Persistence section.
+- Resolved, story 15: the death sheet is compact on phones and, in landscape, sits over the idle pad's corner (see ticket 05).
 - Unverified on a real device: safe-area insets in landscape (the stage is inset by `.app.phone` padding, and the layout adds a 12px margin), and the card's negative bottom margin that runs the sheet under the home indicator.

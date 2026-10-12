@@ -27,7 +27,7 @@ Checked in Chrome device emulation (390×763 and 320×568 touch, plus 1200×900 
 
 Review follow-ups, left open on purpose:
 
-- The spec says the arena "reaches the width", but the code keeps the mockup's 12px side gutter (366px arena on a 390px stage). The spec's "about 145px" pad only comes out with that gutter. Change one of them to match the other.
+- Resolved: the 12px side gutter stays, as in the mockup, and the spec now says so.
 - `.app.phone` is keyed on `pad !== null`, and its CSS assumes portrait. Ticket 06 will need a separate portrait/landscape hook.
 - The overlay's top is set below the HUD on phones so the HUD stays visible. Ticket 05's bottom sheets may replace this.
 - `src/input/joystick.ts` type-imports `Rect` from `src/render/view.ts`. Move the geometry types somewhere shared if that layering matters.

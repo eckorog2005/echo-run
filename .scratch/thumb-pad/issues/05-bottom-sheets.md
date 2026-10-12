@@ -28,3 +28,9 @@ Review follow-ups:
 - Done: `Renderer.draw` takes a `PadView` (`steer` with the joystick, `prompt` with a label, or nothing) instead of a joystick and a label. `main.ts` maps each screen to one with a single table.
 - Done: the sheet's cap is `min(85dvh, 100%)`, measured against the viewport as the spec says. The pinned button row sits above the home indicator, and a panel-coloured shadow fills that strip. This is not yet checked on a notched device; Chrome emulation reports a zero inset.
 - Open: the death sheet covers the pad, the timer row, and roughly the bottom 100px of the arena. A catch in that strip can be hidden under the sheet, so story 15 ("the echo that caught me highlighted") isn't guaranteed there. Options: a shorter death sheet, or shifting the arena view while the sheet is up.
+
+Story 15 follow-up (chose "a shorter death sheet"): on phones the death card is compact. The badge stacks over the reason, the score sits beside them, the text is smaller, and the three actions fit on one row. In landscape the sheet is 380px wide and sits over the idle pad's corner rather than across the arena. Measured in Chrome emulation with an out-of-time death:
+
+- 390×763: an endless death hides none of the arena (about 100px before). A counted daily death hides about 45px, because of the badge and share line.
+- 320×548: endless hides about 1px; a counted daily hides about 85px.
+- 844×390 landscape: the sheet covers only the arena's bottom-right corner, about 185px wide.
