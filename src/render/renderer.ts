@@ -3,14 +3,14 @@ import type { Vec } from '../game/model.ts';
 import type { Scene } from '../game/scene.ts';
 import { JOY_R, type Joystick } from '../input/joystick.ts';
 import type { Effects } from './particles.ts';
-import { fitArena, type ArenaView } from './view.ts';
+import { DEFAULT_PAD_SIDE, isPhone, layout, type Layout } from './view.ts';
 
 type Palette = Record<'ink' | 'panel' | 'line' | 'text' | 'muted' | 'self' | 'echo' | 'orb' | 'danger' | 'erase', string>;
 
 export class Renderer {
   private readonly ctx: CanvasRenderingContext2D;
   private readonly C: Palette;
-  private view: ArenaView = { rotated: false, scale: 1, offsetX: 0, offsetY: 0 };
+  private regions: Layout = layout({ width: 0, height: 0 }, false, DEFAULT_PAD_SIDE);
   private cw = 0;
   private ch = 0;
   private dpr = 1;
@@ -34,7 +34,7 @@ export class Renderer {
   }
 
   get rotated(): boolean {
-    return this.view.rotated;
+    return this.regions.view.rotated;
   }
 
   private resize(): void {
@@ -44,7 +44,8 @@ export class Renderer {
     this.ch = r.height;
     this.canvas.width = Math.round(r.width * this.dpr);
     this.canvas.height = Math.round(r.height * this.dpr);
-    this.view = fitArena(this.cw, this.ch);
+    const phone = isPhone({ width: innerWidth, height: innerHeight }, matchMedia('(pointer: coarse)').matches);
+    this.regions = layout({ width: this.cw, height: this.ch }, phone, DEFAULT_PAD_SIDE);
   }
 
   private circle(x: number, y: number, r: number): void {
@@ -72,7 +73,7 @@ export class Renderer {
 
     const sh = fx.offset();
     ctx.save();
-    const { rotated, scale, offsetX, offsetY } = this.view;
+    const { rotated, scale, offsetX, offsetY } = this.regions.view;
     if (rotated) {
       ctx.translate(offsetX + WORLD_H * scale + sh.x, offsetY + sh.y);
       ctx.rotate(Math.PI / 2);
