@@ -20,10 +20,11 @@ export interface Rect extends Size {
 
 export type PadSide = 'left' | 'right';
 
-/** Where everything goes on the stage, in stage pixels. A null HUD sits outside the stage, in the page header. */
+/** Where everything goes on the stage, in stage pixels. A null HUD or timer row sits outside the stage, in the page header. */
 export interface Layout {
   hud: Rect | null;
   arena: Rect;
+  timer: Rect | null;
   pad: Rect | null;
   view: ArenaView;
 }
@@ -31,13 +32,32 @@ export interface Layout {
 export const DEFAULT_PAD_SIDE: PadSide = 'right';
 const PHONE_MAX_SIDE = 500;
 const MARGIN = 12;
+const PHONE_GAP = 10;
+const HUD_H = 44;
+const TIMER_H = 24;
+const MIN_PAD_H = 120;
 
 export function isPhone(viewport: Size, coarsePointer: boolean): boolean {
   return coarsePointer && Math.min(viewport.width, viewport.height) <= PHONE_MAX_SIDE;
 }
 
-export function layout(stage: Size, _phone: boolean, _padSide: PadSide): Layout {
-  return { hud: null, ...fitArena(stage), pad: null };
+export function layout(stage: Size, phone: boolean, _padSide: PadSide): Layout {
+  if (phone && stage.height > stage.width) return portraitPhone(stage);
+  return { hud: null, timer: null, ...fitArena(stage), pad: null };
+}
+
+function portraitPhone(stage: Size): Layout {
+  const width = stage.width - MARGIN * 2;
+  const hud = { x: MARGIN, y: 0, width, height: HUD_H };
+  const top = HUD_H + PHONE_GAP;
+  const maxArenaH = stage.height - top - PHONE_GAP - TIMER_H - PHONE_GAP - MIN_PAD_H;
+  const scale = Math.max(0.01, Math.min(width / WORLD_H, maxArenaH / WORLD_W));
+  const arenaW = WORLD_H * scale;
+  const arena = { x: (stage.width - arenaW) / 2, y: top, width: arenaW, height: WORLD_W * scale };
+  const timer = { x: MARGIN, y: arena.y + arena.height + PHONE_GAP, width, height: TIMER_H };
+  const padY = timer.y + TIMER_H + PHONE_GAP;
+  const pad = { x: MARGIN, y: padY, width, height: Math.max(0, stage.height - padY) };
+  return { hud, arena, timer, pad, view: { rotated: true, scale, offsetX: arena.x, offsetY: arena.y } };
 }
 
 function fitArena(stage: Size): { arena: Rect; view: ArenaView } {

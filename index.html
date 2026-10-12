@@ -14,15 +14,22 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;800&family=IBM+Plex+Mono:wght@400;600&display=swap" />
   </head>
   <body>
-    <div class="app">
-      <header>
+    <div class="app" id="app">
+      <header id="hud">
         <h1>Echo<span>Run</span></h1>
         <span class="mode-chip" id="mode-chip"></span>
         <div class="stats">
           <div class="stat"><small>Orbs</small><b id="score">0</b></div>
           <div class="stat echoes"><small>Echoes</small><b id="echoes">0</b></div>
           <div class="stat"><small id="best-label">Best</small><b id="best">0</b></div>
-          <button class="icon-btn" id="mute" type="button" aria-pressed="false">Sound on</button>
+          <button class="icon-btn mute" id="mute" type="button" aria-pressed="false">
+            <svg class="mute-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M11 5 6 9H3v6h3l5 4z" />
+              <path class="sound-on" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" />
+              <path class="sound-off" d="m16 9 6 6M22 9l-6 6" />
+            </svg>
+            <span id="mute-label">Sound on</span>
+          </button>
         </div>
       </header>
       <div class="stage" id="stage">

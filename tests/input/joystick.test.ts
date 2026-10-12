@@ -57,10 +57,10 @@ describe('Joystick', () => {
     expect(v.y).toBeCloseTo(0.5, 5);
   });
 
-  it('rests at its resting anchor while idle and starts from wherever the thumb lands', () => {
+  it('rests at the centre of its zone while idle and starts from wherever the thumb lands', () => {
     const joy = new Joystick();
-    joy.restAt({ x: 195, y: 760 });
-    expect({ ax: joy.ax, ay: joy.ay, x: joy.x, y: joy.y }).toEqual({ ax: 195, ay: 760, x: 195, y: 760 });
+    joy.confine({ x: 12, y: 620, width: 366, height: 140 });
+    expect({ ax: joy.ax, ay: joy.ay, x: joy.x, y: joy.y }).toEqual({ ax: 195, ay: 690, x: 195, y: 690 });
     expect(joy.vector()).toEqual({ x: 0, y: 0 });
 
     joy.press(1, { x: 120, y: 740 });
@@ -68,17 +68,25 @@ describe('Joystick', () => {
     expect(joy.vector().y).toBeCloseTo(-0.5, 5);
 
     joy.release(1);
-    expect({ ax: joy.ax, ay: joy.ay, x: joy.x, y: joy.y }).toEqual({ ax: 195, ay: 760, x: 195, y: 760 });
+    expect({ ax: joy.ax, ay: joy.ay, x: joy.x, y: joy.y }).toEqual({ ax: 195, ay: 690, x: 195, y: 690 });
   });
 
-  it('keeps its resting anchor when the caller later changes the point it passed', () => {
+  it('ignores presses that start outside its zone, even if they drag into it', () => {
     const joy = new Joystick();
-    const centre = { x: 195, y: 760 };
-    joy.restAt(centre);
-    centre.x = 0;
-    joy.press(1, { x: 50, y: 50 });
-    joy.release(1);
-    expect({ ax: joy.ax, ay: joy.ay }).toEqual({ ax: 195, ay: 760 });
+    joy.confine({ x: 12, y: 620, width: 366, height: 140 });
+    expect(joy.press(1, { x: 195, y: 300 })).toBe(false);
+    joy.move(1, { x: 195, y: 700 });
+    expect(joy.active).toBe(false);
+    expect(joy.vector()).toEqual({ x: 0, y: 0 });
+
+    expect(joy.press(2, { x: 195, y: 700 })).toBe(true);
+  });
+
+  it('takes presses anywhere again once its zone is lifted', () => {
+    const joy = new Joystick();
+    joy.confine({ x: 12, y: 620, width: 366, height: 140 });
+    joy.confine(null);
+    expect(joy.press(1, { x: 195, y: 300 })).toBe(true);
   });
 
   it('can be cancelled without knowing which finger is steering, and the thumb must press again', () => {

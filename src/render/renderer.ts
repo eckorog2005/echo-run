@@ -3,7 +3,7 @@ import type { Vec } from '../game/model.ts';
 import type { Scene } from '../game/scene.ts';
 import { JOY_R, type Joystick } from '../input/joystick.ts';
 import type { Effects } from './particles.ts';
-import { DEFAULT_PAD_SIDE, isPhone, layout, type Layout } from './view.ts';
+import { DEFAULT_PAD_SIDE, isPhone, layout, type Layout, type Rect } from './view.ts';
 
 type Palette = Record<'ink' | 'panel' | 'line' | 'text' | 'muted' | 'self' | 'echo' | 'orb' | 'danger' | 'erase', string>;
 
@@ -15,7 +15,11 @@ export class Renderer {
   private ch = 0;
   private dpr = 1;
 
-  constructor(private readonly canvas: HTMLCanvasElement, private readonly stage: HTMLElement) {
+  constructor(
+    private readonly canvas: HTMLCanvasElement,
+    private readonly stage: HTMLElement,
+    private readonly onLayout: (layout: Layout) => void,
+  ) {
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Canvas 2D is not available');
     this.ctx = ctx;
@@ -37,6 +41,10 @@ export class Renderer {
     return this.regions.view.rotated;
   }
 
+  get layout(): Layout {
+    return this.regions;
+  }
+
   private resize(): void {
     const r = this.stage.getBoundingClientRect();
     this.dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -45,7 +53,10 @@ export class Renderer {
     this.canvas.width = Math.round(r.width * this.dpr);
     this.canvas.height = Math.round(r.height * this.dpr);
     const phone = isPhone({ width: innerWidth, height: innerHeight }, matchMedia('(pointer: coarse)').matches);
-    this.regions = layout({ width: this.cw, height: this.ch }, phone, DEFAULT_PAD_SIDE);
+    const next = layout({ width: this.cw, height: this.ch }, phone, DEFAULT_PAD_SIDE);
+    const changed = JSON.stringify(next) !== JSON.stringify(this.regions);
+    this.regions = next;
+    if (changed) this.onLayout(next);
   }
 
   private circle(x: number, y: number, r: number): void {
@@ -68,7 +79,8 @@ export class Renderer {
     const { ctx, C } = this;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.globalAlpha = 1;
-    ctx.fillStyle = C.panel;
+    const { pad } = this.regions;
+    ctx.fillStyle = pad ? C.ink : C.panel;
     ctx.fillRect(0, 0, this.cw, this.ch);
 
     const sh = fx.offset();
@@ -223,7 +235,8 @@ export class Renderer {
     }
     ctx.restore();
 
-    if (joy?.active) {
+    if (pad) this.drawPad(pad, joy);
+    else if (joy?.active) {
       ctx.strokeStyle = C.muted;
       ctx.globalAlpha = 0.5;
       ctx.lineWidth = 1.5;
@@ -235,5 +248,41 @@ export class Renderer {
       ctx.fill();
       ctx.globalAlpha = 1;
     }
+  }
+
+  private drawPad(pad: Rect, joy: Joystick | null): void {
+    const { ctx, C } = this;
+    ctx.fillStyle = C.panel;
+    ctx.strokeStyle = C.line;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(pad.x + 0.5, pad.y + 0.5, pad.width - 1, pad.height - 1, 20);
+    ctx.fill();
+    ctx.stroke();
+
+    const ring = JOY_R + 14;
+    const labelY = pad.y + pad.height - 12;
+    if (labelY - 10 > pad.y + pad.height / 2 + ring) {
+      ctx.fillStyle = C.muted;
+      ctx.font = '600 9px "IBM Plex Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText('DRAG HERE TO STEER', pad.x + pad.width / 2, labelY);
+    }
+    if (!joy) return;
+
+    ctx.fillStyle = C.ink;
+    ctx.strokeStyle = C.line;
+    ctx.lineWidth = 2;
+    this.circle(joy.ax, joy.ay, ring);
+    ctx.fill();
+    ctx.stroke();
+    const dx = joy.x - joy.ax, dy = joy.y - joy.ay;
+    const k = Math.min(1, JOY_R / (Math.hypot(dx, dy) || 1));
+    ctx.fillStyle = C.self;
+    ctx.globalAlpha = joy.active ? 1 : 0.7;
+    this.circle(joy.ax + dx * k, joy.ay + dy * k, 20);
+    ctx.fill();
+    ctx.globalAlpha = 1;
   }
 }
