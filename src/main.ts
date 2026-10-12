@@ -2,10 +2,10 @@ import './style.css';
 import { Audio } from './audio/audio.ts';
 import { ROUND_TICKS, TICK } from './game/constants.ts';
 import { dateKey } from './game/daily.ts';
-import { Session, type Hud, type Mode, type SessionEvent } from './game/session.ts';
+import { Session, type Hud, type Mode, type Screen, type SessionEvent } from './game/session.ts';
 import { Input } from './input/input.ts';
 import { Effects } from './render/particles.ts';
-import { Renderer } from './render/renderer.ts';
+import { Renderer, type PadView } from './render/renderer.ts';
 import { LOW_TIME_LEFT, toArenaDirection, type Layout, type Rect } from './render/view.ts';
 import { browserStore } from './storage.ts';
 import { Overlay } from './ui/overlay.ts';
@@ -65,6 +65,7 @@ function applyLayout(next: Layout): void {
   app.classList.toggle('phone', next.pad !== null);
   place(hudEl.header, next.hud);
   place(hudEl.timer, next.timer);
+  // Sheets cover the timer row but stop under the HUD so mute stays reachable.
   overlayEl.style.top = next.hud ? `${next.hud.y + next.hud.height}px` : '';
   input.joy.cancel();
   input.joy.confine(next.pad);
@@ -164,6 +165,13 @@ function handle(events: SessionEvent[]): void {
 }
 
 // ---------- Loop ----------
+const PAD_VIEWS: Record<Screen, PadView> = {
+  title: { kind: 'steer', joy: input.joy },
+  play: { kind: 'steer', joy: input.joy },
+  dead: null,
+  replay: { kind: 'prompt', label: 'Tap to skip' },
+};
+
 let last = performance.now();
 let acc = 0;
 function frame(now: number): void {
@@ -178,8 +186,7 @@ function frame(now: number): void {
     acc -= TICK;
   }
   renderHud();
-  const showJoy = session.screen === 'play' || (session.screen === 'title' && renderer.layout.pad !== null);
-  renderer.draw(session.scene(), fx, showJoy ? input.joy : null, now);
+  renderer.draw(session.scene(), fx, PAD_VIEWS[session.screen], now);
   requestAnimationFrame(frame);
 }
 

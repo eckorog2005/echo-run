@@ -15,3 +15,5 @@
 ## Comments
 
 From the ticket 04 review: `.app.phone` turns on whenever the layout has a pad, and under it the CSS hides the header's mode chip and places `#timer` at `layout.timer`. A landscape layout with a pad but no timer rectangle would therefore show neither the mode nor the timer. Either give landscape a timer/mode area in the HUD column, or tie the chip-hiding rule to the presence of a timer row instead of `.app.phone`.
+
+From the ticket 05 review: the bottom-sheet CSS also hangs off `.app.phone`. `main.ts` sets the overlay's `top` to the HUD's bottom edge so mute stays reachable, which assumes the HUD is a row at the top. A side-column HUD would squash the overlay. Landscape needs its own hook, or the overlay top should be set only when the HUD is a top row.

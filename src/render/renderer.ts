@@ -5,6 +5,9 @@ import { JOY_R, type Joystick } from '../input/joystick.ts';
 import type { Effects } from './particles.ts';
 import { DEFAULT_PAD_SIDE, LOW_TIME_LEFT, isPhone, layout, type Layout, type Rect } from './view.ts';
 
+/** What the steering pad shows: the joystick, a prompt such as "Tap to skip", or nothing. */
+export type PadView = { kind: 'steer'; joy: Joystick } | { kind: 'prompt'; label: string } | null;
+
 type Palette = Record<'ink' | 'panel' | 'line' | 'text' | 'muted' | 'self' | 'echo' | 'orb' | 'danger' | 'erase', string>;
 
 export class Renderer {
@@ -75,7 +78,7 @@ export class Renderer {
     ctx.stroke();
   }
 
-  draw(scene: Scene, fx: Effects, joy: Joystick | null, now: number): void {
+  draw(scene: Scene, fx: Effects, padView: PadView, now: number): void {
     const { ctx, C } = this;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.globalAlpha = 1;
@@ -235,7 +238,8 @@ export class Renderer {
     }
     ctx.restore();
 
-    if (pad) this.drawPad(pad, joy);
+    const joy = padView?.kind === 'steer' ? padView.joy : null;
+    if (pad) this.drawPad(pad, padView);
     else if (joy?.active) {
       ctx.strokeStyle = C.muted;
       ctx.globalAlpha = 0.5;
@@ -250,7 +254,7 @@ export class Renderer {
     }
   }
 
-  private drawPad(pad: Rect, joy: Joystick | null): void {
+  private drawPad(pad: Rect, view: PadView): void {
     const { ctx, C } = this;
     ctx.fillStyle = C.panel;
     ctx.strokeStyle = C.line;
@@ -259,17 +263,25 @@ export class Renderer {
     ctx.roundRect(pad.x + 0.5, pad.y + 0.5, pad.width - 1, pad.height - 1, 20);
     ctx.fill();
     ctx.stroke();
+    if (!view) return;
 
+    const cx = pad.x + pad.width / 2;
+    ctx.fillStyle = C.muted;
+    ctx.textAlign = 'center';
+    if (view.kind === 'prompt') {
+      ctx.font = '600 12px "IBM Plex Mono", monospace';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(view.label.toUpperCase(), cx, pad.y + pad.height / 2);
+      return;
+    }
+    const { joy } = view;
     const ring = JOY_R + 14;
     const labelY = pad.y + pad.height - 12;
     if (labelY - 10 > pad.y + pad.height / 2 + ring) {
-      ctx.fillStyle = C.muted;
       ctx.font = '600 9px "IBM Plex Mono", monospace';
-      ctx.textAlign = 'center';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText('DRAG HERE TO STEER', pad.x + pad.width / 2, labelY);
+      ctx.fillText('DRAG HERE TO STEER', cx, labelY);
     }
-    if (!joy) return;
 
     ctx.fillStyle = C.ink;
     ctx.strokeStyle = C.line;
