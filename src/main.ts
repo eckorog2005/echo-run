@@ -1,12 +1,13 @@
 import './style.css';
 import { Audio } from './audio/audio.ts';
-import { TICK } from './game/constants.ts';
+import { ROUND_TICKS, TICK } from './game/constants.ts';
 import { dateKey } from './game/daily.ts';
-import { Session, type Hud, type Mode, type SessionEvent } from './game/session.ts';
+import { Session, type Hud, type Mode, type Screen, type SessionEvent } from './game/session.ts';
 import { Input } from './input/input.ts';
 import { Effects } from './render/particles.ts';
-import { Renderer } from './render/renderer.ts';
-import { toArenaDirection } from './render/view.ts';
+import { Renderer, type PadView } from './render/renderer.ts';
+import { LOW_TIME_LEFT, toArenaDirection, type Layout, type PadSide, type Rect } from './render/view.ts';
+import { loadPadSide, savePadSide } from './render/padSide.ts';
 import { browserStore } from './storage.ts';
 import { Overlay } from './ui/overlay.ts';
 
@@ -16,24 +17,63 @@ const byId = <T extends HTMLElement>(id: string): T => {
   return el as T;
 };
 
+const app = byId('app');
 const stage = byId<HTMLDivElement>('stage');
+const overlayEl = byId('overlay');
 const hudEl = {
+  header: byId('hud'),
   score: byId('score'),
   echoes: byId('echoes'),
   best: byId('best'),
   bestLabel: byId('best-label'),
   mode: byId('mode-chip'),
   mute: byId<HTMLButtonElement>('mute'),
+  muteLabel: byId('mute-label'),
+  timer: byId('timer'),
+  timerLabel: byId('timer-label'),
+  timerRound: byId('timer-round'),
+  timerSecs: byId('timer-secs'),
+  timerFill: byId('timer-fill'),
 };
 
 const store = browserStore;
 const session = new Session({ store, today: () => dateKey(), randomSeed: () => (Math.random() * 2 ** 32) >>> 0 });
-const renderer = new Renderer(byId<HTMLCanvasElement>('cv'), stage);
 const input = new Input(stage);
+const renderer = new Renderer(byId<HTMLCanvasElement>('cv'), stage, loadPadSide(store), applyLayout);
 const audio = new Audio(store);
 const fx = new Effects();
-const overlay = new Overlay(byId('overlay'));
+const overlay = new Overlay(overlayEl);
 const C = renderer.colors;
+
+// ---------- Layout ----------
+// A null rect hands placement back to the stylesheet. Measures from the parent, not offsetParent,
+// which is null while the element is hidden.
+function place(el: HTMLElement, rect: Rect | null): void {
+  const parent = el.parentElement?.getBoundingClientRect();
+  if (!rect || !parent) {
+    el.style.removeProperty('left');
+    el.style.removeProperty('top');
+    el.style.removeProperty('width');
+    el.style.removeProperty('height');
+    return;
+  }
+  const s = stage.getBoundingClientRect();
+  el.style.left = `${s.left - parent.left + rect.x}px`;
+  el.style.top = `${s.top - parent.top + rect.y}px`;
+  el.style.width = `${rect.width}px`;
+  el.style.height = `${rect.height}px`;
+}
+
+function applyLayout(next: Layout): void {
+  app.classList.toggle('phone', next.kind !== 'stage');
+  app.classList.toggle('landscape', next.kind === 'landscape');
+  app.classList.toggle('pad-left', next.kind === 'landscape' && next.pad !== null && next.pad.x < next.arena.x);
+  place(hudEl.header, next.hud);
+  place(hudEl.timer, next.timer);
+  place(overlayEl, next.sheet);
+  input.joy.cancel();
+  input.joy.confine(next.pad);
+}
 
 // ---------- HUD ----------
 let shownHud = '';
@@ -47,10 +87,16 @@ function renderHud(): void {
   hudEl.bestLabel.textContent = h.bestLabel;
   hudEl.best.textContent = h.best;
   hudEl.mode.textContent = h.mode;
+  hudEl.timer.classList.toggle('idle', h.round === null);
+  hudEl.timerLabel.textContent = h.timerLabel;
+  hudEl.timerRound.textContent = h.round === null ? '' : `Round ${h.round}`;
+  hudEl.timerSecs.textContent = `${(h.timeLeft * ROUND_TICKS * TICK).toFixed(1)} s`;
+  hudEl.timerFill.style.width = `${h.timeLeft * 100}%`;
+  hudEl.timerFill.classList.toggle('low', h.timeLeft < LOW_TIME_LEFT);
 }
 
 function renderMute(): void {
-  hudEl.mute.textContent = audio.muted ? 'Sound off' : 'Sound on';
+  hudEl.muteLabel.textContent = audio.muted ? 'Sound off' : 'Sound on';
   hudEl.mute.setAttribute('aria-pressed', String(audio.muted));
 }
 hudEl.mute.addEventListener('click', () => {
@@ -63,7 +109,13 @@ renderMute();
 function showTitle(): void {
   session.menu();
   input.joystickEnabled = false;
-  overlay.showTitle(session.titleInfo(), { daily: () => startRun('daily'), endless: () => startRun('endless') });
+  const padSide = renderer.layout.kind === 'stage' ? null : { side: renderer.padSide, choose: choosePadSide };
+  overlay.showTitle(session.titleInfo(), { daily: () => startRun('daily'), endless: () => startRun('endless') }, padSide);
+}
+
+function choosePadSide(side: PadSide): void {
+  savePadSide(store, side);
+  renderer.setPadSide(side);
 }
 
 function startRun(mode: Mode): void {
@@ -124,16 +176,18 @@ function handle(events: SessionEvent[]): void {
 }
 
 // ---------- Loop ----------
+const PAD_VIEWS: Record<Screen, PadView> = {
+  title: { kind: 'steer', joy: input.joy },
+  play: { kind: 'steer', joy: input.joy },
+  dead: null,
+  replay: { kind: 'prompt', label: 'Tap to skip' },
+};
+
 let last = performance.now();
 let acc = 0;
-let wasRotated = renderer.rotated;
 function frame(now: number): void {
   acc += Math.min(0.1, (now - last) / 1000);
   last = now;
-  if (renderer.rotated !== wasRotated) {
-    wasRotated = renderer.rotated;
-    input.joy.cancel();
-  }
   while (acc >= TICK) {
     const playing = session.screen === 'play';
     const events = session.tick(toArenaDirection(input.direction(), renderer.rotated));
@@ -143,7 +197,7 @@ function frame(now: number): void {
     acc -= TICK;
   }
   renderHud();
-  renderer.draw(session.scene(), fx, session.screen === 'play' ? input.joy : null, now);
+  renderer.draw(session.scene(), fx, PAD_VIEWS[session.screen], now);
   requestAnimationFrame(frame);
 }
 

@@ -76,6 +76,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
 .daily small { font-size: 10px; text-transform: uppercase; letter-spacing: .14em; color: var(--orb); }
 .share { display: flex; gap: 8px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 8px 8px 12px; }
 .share code { flex: 1; min-width: 0; font: 12px var(--mono); color: var(--text); overflow-wrap: anywhere; user-select: text; -webkit-user-select: text; }
+.headline { display: contents; }
 .big { font-family: var(--display); font-weight: 800; font-size: 56px; line-height: 1; color: var(--orb); font-variant-numeric: tabular-nums; }
 .badge { align-self: flex-start; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink); background: var(--orb); padding: 4px 8px; border-radius: 4px; font-weight: 600; }
 .badge.muted { background: var(--line); color: var(--text); }
@@ -114,6 +115,91 @@ footer { font-size: 11px; color: var(--muted); display: flex; justify-content: s
   .stat { flex-direction: row; align-items: baseline; justify-content: space-between; width: 100%; gap: 8px; }
   .icon-btn { width: 100%; }
 }
+
+/* Portrait phones: the stage fills the safe area and main.ts places the HUD, mode chip, and overlay from the layout. */
+.mute-icon { display: none; }
+.mute .sound-off, .mute[aria-pressed="true"] .sound-on { display: none; }
+.mute[aria-pressed="true"] .sound-off { display: inline; }
+.app.phone {
+  position: relative; max-width: none; gap: 0;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+.app.phone header { position: absolute; z-index: 1; flex-wrap: nowrap; gap: 12px; }
+.app.phone h1 { font-size: 15px; }
+.app.phone .stats { gap: 16px; }
+.app.phone .stat small { font-size: 9px; }
+.app.phone .stat b { font-size: 16px; }
+.app.phone .mode-chip { display: none; }
+.timer { display: none; }
+.app.phone .timer { position: absolute; z-index: 1; display: flex; flex-direction: column; justify-content: center; gap: 6px; }
+.timer-row { display: flex; justify-content: space-between; gap: 12px; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.timer-row span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.timer-secs { color: var(--text); font-variant-numeric: tabular-nums; }
+.timer-track { height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.timer-fill { height: 100%; background: var(--orb); }
+.timer-fill.low { background: var(--danger); }
+.timer.idle { visibility: hidden; }
+.app.phone .mute { width: 44px; height: 44px; padding: 0; display: grid; place-items: center; border-radius: 12px; }
+.app.phone .mute-icon { display: block; }
+.app.phone #mute-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.app.phone .stage { border: 0; border-radius: 0; background: var(--ink); overflow: visible; }
+/* main.ts places the overlay beside or below the HUD; the card's negative margin runs the sheet under the home indicator. */
+.app.phone .overlay {
+  z-index: 2; display: flex; flex-direction: column; justify-content: flex-end; padding: 0; overflow: visible;
+  background: color-mix(in srgb, var(--ink) 30%, transparent);
+}
+.app.phone .card {
+  max-width: none; max-height: min(85dvh, 100%); overflow-y: auto; overscroll-behavior: contain;
+  margin-bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
+  background: var(--panel); border-top: 1px solid var(--line); border-radius: 20px 20px 0 0;
+  padding: 20px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -12px 32px color-mix(in srgb, var(--ink) 70%, transparent);
+}
+.app.phone .card h2 { font-size: 26px; }
+/* Pinned so the actions stay in thumb reach while a tall sheet scrolls. */
+.app.phone .card > .row {
+  position: sticky; bottom: env(safe-area-inset-bottom, 0px); background: var(--panel); padding-top: 8px;
+  /* Fills the home-indicator strip below the pinned row so scrolled text can't show through it. */
+  box-shadow: 0 env(safe-area-inset-bottom, 0px) 0 var(--panel);
+}
+.app.phone .card button { min-height: 44px; }
+.app.phone footer { display: none; }
+
+/* A short death sheet keeps as much of the arena as possible visible, including the echo that caught the player. */
+.app.phone .card.death { gap: 8px; padding-top: 14px; }
+.app.phone .card.death .headline { display: grid; grid-template-columns: 1fr auto; column-gap: 12px; row-gap: 6px; align-items: end; }
+.app.phone .card.death .headline .badge { grid-column: 1; justify-self: start; }
+.app.phone .card.death .headline h2 { grid-column: 1; }
+.app.phone .card.death .headline .big { grid-column: 2; grid-row: 1 / span 2; }
+.app.phone .card.death h2 { font-size: 19px; }
+.app.phone .card.death .big { font-size: 34px; }
+.app.phone .card.death p { font-size: 12px; line-height: 1.5; }
+.app.phone .card.death .row { flex-wrap: nowrap; gap: 8px; padding-top: 4px; }
+.app.phone .card.death .row button { padding: 0 12px; font-size: 12px; white-space: nowrap; }
+.app.phone .card.death .row .primary { flex: 1; }
+.pad-side { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--line); padding-top: 14px; }
+.pad-side small { font-size: 10px; text-transform: uppercase; letter-spacing: .14em; color: var(--muted); }
+.seg { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; flex: none; }
+.seg button { background: transparent; color: var(--muted); border: 0; font: 600 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; padding: 0 16px; min-height: 44px; }
+.seg button[aria-pressed="true"] { background: var(--line); color: var(--text); }
+#timer-round { display: none; }
+
+/* Landscape phones: the HUD is a column beside the arena, with the timer at its foot. */
+.app.phone.landscape header { flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 10px; }
+.app.phone.landscape h1 { font-size: 14px; }
+.app.phone.landscape .mode-chip { display: block; align-self: flex-start; font-size: 9px; padding: 3px 8px; border-radius: 8px; line-height: 1.4; }
+.app.phone.landscape .mode-chip:empty { display: none; }
+.app.phone.landscape .stats { flex: 1; flex-direction: column; align-items: stretch; margin-left: 0; gap: 6px; }
+.app.phone.landscape .stat { flex-direction: row; align-items: baseline; justify-content: space-between; }
+.app.phone.landscape .stat b { font-size: 18px; }
+.app.phone.landscape .mute { width: 100%; margin-top: auto; }
+.app.phone.landscape .timer-row { font-size: 9px; }
+.app.phone.landscape #timer-label { display: none; }
+.app.phone.landscape #timer-round { display: inline; }
+.app.phone.landscape .card { width: min(100%, 560px); align-self: center; border-inline: 1px solid var(--line); }
+/* After a death the pad is idle, so the sheet sits over the pad's corner and leaves most of the arena in view. */
+.app.phone.landscape .card.death { width: min(100%, 380px); align-self: flex-end; }
+.app.phone.landscape.pad-left .card.death { align-self: flex-start; }
 
 /* Touch screens have no Space key. */
 @media (hover: none) and (pointer: coarse) {

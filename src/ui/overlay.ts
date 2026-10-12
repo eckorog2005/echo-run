@@ -1,4 +1,5 @@
 import type { RunResult, TitleInfo } from '../game/session.ts';
+import { parsePadSide, type PadSide } from '../render/view.ts';
 
 type Actions = Record<string, () => void>;
 
@@ -9,6 +10,16 @@ function shareBlock(line: string): string {
     <div class="share">
       <code id="share-line">${line}</code>
       <button class="ghost-btn" type="button" data-action="copy">Copy</button>
+    </div>`;
+}
+
+function padSideToggle(side: PadSide): string {
+  const option = (value: PadSide, label: string): string =>
+    `<button type="button" data-pad-side="${value}" aria-pressed="${side === value}">${label}</button>`;
+  return `
+    <div class="pad-side">
+      <small id="pad-side-label">Steering pad in landscape</small>
+      <div class="seg" role="group" aria-labelledby="pad-side-label">${option('left', 'Left')}${option('right', 'Right')}</div>
     </div>`;
 }
 
@@ -32,8 +43,8 @@ export class Overlay {
     this.primary = null;
   }
 
-  private show(html: string, actions: Actions, primary: string): void {
-    this.el.innerHTML = `<div class="card">${html}</div>`;
+  private show(html: string, actions: Actions, primary: string, kind: 'title' | 'death'): void {
+    this.el.innerHTML = `<div class="card ${kind}">${html}</div>`;
     this.el.hidden = false;
     this.el.scrollTop = 0;
     this.primary = actions[primary] ?? null;
@@ -61,7 +72,7 @@ export class Overlay {
     );
   }
 
-  showTitle(info: TitleInfo, actions: Actions): void {
+  showTitle(info: TitleInfo, actions: Actions, padSide: { side: PadSide; choose: (side: PadSide) => void } | null): void {
     const played = info.daily;
     const dailySection = played
       ? `<p>Today's run: <strong>${plural(played.score, 'orb')}</strong>. A new course unlocks tomorrow.</p>
@@ -81,6 +92,7 @@ export class Overlay {
         <small>Daily · ${info.today}</small>
         ${dailySection}
       </div>
+      ${padSide ? padSideToggle(padSide.side) : ''}
       <div class="row">
         <button class="primary" type="button" data-action="daily">${played ? 'Practice daily' : 'Daily run'}</button>
         <button class="secondary" type="button" data-action="endless">Endless</button>
@@ -88,7 +100,20 @@ export class Overlay {
       </div>`,
       actions,
       played ? 'endless' : 'daily',
+      'title',
     );
+    if (padSide) this.bindPadSide(padSide.choose);
+  }
+
+  private bindPadSide(choose: (side: PadSide) => void): void {
+    const buttons = [...this.el.querySelectorAll<HTMLButtonElement>('[data-pad-side]')];
+    for (const btn of buttons) {
+      btn.addEventListener('click', () => {
+        const side = parsePadSide(btn.dataset.padSide);
+        for (const b of buttons) b.setAttribute('aria-pressed', String(b === btn));
+        choose(side);
+      });
+    }
   }
 
   showDeath(info: RunResult, actions: Actions): void {
@@ -106,9 +131,11 @@ export class Overlay {
     const bestNote = info.mode === 'endless' ? ` Best: <strong>${info.best}</strong>.` : '';
     this.show(
       `
-      ${badge}
-      <h2>${reason}</h2>
-      <div class="big">${info.score}</div>
+      <div class="headline">
+        ${badge}
+        <h2>${reason}</h2>
+        <div class="big">${info.score}</div>
+      </div>
       <p>${lead}${made}${info.score === 0 ? '' : `${erasedNote}.`}${bestNote}</p>
       ${shareLine ? shareBlock(shareLine) : ''}
       <div class="row">
@@ -119,6 +146,7 @@ export class Overlay {
       <span class="hint"><kbd>Space</kbd> runs again</span>`,
       actions,
       'again',
+      'death',
     );
   }
 }

@@ -1,4 +1,5 @@
 import type { Vec } from '../game/model.ts';
+import type { Rect } from '../render/view.ts';
 
 export const JOY_R = 38;
 const DEAD_ZONE = 5;
@@ -11,17 +12,17 @@ export class Joystick {
   ay = 0;
   x = 0;
   y = 0;
-  private rest: Vec | null = null;
+  private zone: Rect | null = null;
 
-  /** Where the stick sits while idle, such as the steering pad's centre. */
-  restAt(p: Vec): void {
-    this.rest = { ...p };
+  /** Null takes presses anywhere on the stage. */
+  confine(zone: Rect | null): void {
+    this.zone = zone && { ...zone };
     if (!this.active) this.settle();
   }
 
   /** Returns whether this press took the joystick; a second finger can't take it over. */
   press(id: number, p: Vec): boolean {
-    if (this.active) return false;
+    if (this.active || !this.inZone(p)) return false;
     this.active = true;
     this.id = id;
     this.ax = this.x = p.x;
@@ -62,9 +63,14 @@ export class Joystick {
     return { dx, dy, len: Math.hypot(dx, dy) };
   }
 
+  private inZone(p: Vec): boolean {
+    const z = this.zone;
+    return !z || (p.x >= z.x && p.x <= z.x + z.width && p.y >= z.y && p.y <= z.y + z.height);
+  }
+
   private settle(): void {
-    if (!this.rest) return;
-    this.ax = this.x = this.rest.x;
-    this.ay = this.y = this.rest.y;
+    if (!this.zone) return;
+    this.ax = this.x = this.zone.x + this.zone.width / 2;
+    this.ay = this.y = this.zone.y + this.zone.height / 2;
   }
 }
