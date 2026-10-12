@@ -4,10 +4,19 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] One pure layout function in the view module returns HUD, arena, and (optional) steering pad rectangles plus the arena view
-- [ ] Existing arena-fitting tests carry over and still pass against the new function
-- [ ] A test asserts that no viewport gets a steering pad yet
-- [ ] The arena is drawn exactly as before on desktop, portrait, and landscape
-- [ ] `npm test` and `npm run build` pass
+- [x] One pure layout function in the view module returns HUD, arena, and (optional) steering pad rectangles plus the arena view
+- [x] Existing arena-fitting tests carry over and still pass against the new function
+- [x] A test asserts that no viewport gets a steering pad yet
+- [x] The arena is drawn exactly as before on desktop, portrait, and landscape
+- [x] `npm test` and `npm run build` pass
+
+## Comments
+
+Implemented as `layout(stage, phone, padSide)` in `src/render/view.ts`; `fitArena` is now private. Decisions for ticket 03 to confirm or change:
+
+- The function works in stage pixels and takes the stage size, not the window. On desktop and tablets CSS still places the header and stage, so it returns `hud: null` there (HUD outside the stage). Phones can make the stage fill the viewport and get real HUD and pad rectangles from the same function.
+- The phone rule is `isPhone(viewport, coarsePointer)` in the same module, so input routing can share it. The CSS touch rule in `style.css` uses `(hover: none) and (pointer: coarse)` instead, so the two can disagree on hybrid devices.
+
+Checked by rendering HEAD and this change under a frozen clock at 1200×900, 390×844 touch, and 844×390 touch: the canvas pixels are identical.
