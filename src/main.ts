@@ -112,7 +112,7 @@ function handle(events: SessionEvent[]): void {
       audio.erase();
     } else if (ev.type === 'die') {
       input.joystickEnabled = false;
-      input.joy.active = false;
+      input.joy.cancel();
       fx.burst(ev.at.x, ev.at.y, C.danger, 44, 340);
       fx.burst(ev.at.x, ev.at.y, C.self, 20, 200);
       fx.kick(18);
@@ -132,7 +132,7 @@ function frame(now: number): void {
   last = now;
   if (renderer.rotated !== wasRotated) {
     wasRotated = renderer.rotated;
-    input.joy.active = false;
+    input.joy.cancel();
   }
   while (acc >= TICK) {
     const playing = session.screen === 'play';

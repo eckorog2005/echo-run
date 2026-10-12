@@ -4,11 +4,15 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
-- [ ] A pure joystick model exists in the input layer with no DOM dependencies
-- [ ] Node tests cover: press then move inside the radius, moving past the radius dragging the anchor, reversal after a drag, the dead zone, and release
-- [ ] The model can be given a resting anchor (used later for the steering pad's centre); no caller uses it yet
-- [ ] Keyboard steering still takes priority over the joystick
+- [x] A pure joystick model exists in the input layer with no DOM dependencies
+- [x] Node tests cover: press then move inside the radius, moving past the radius dragging the anchor, reversal after a drag, the dead zone, and release
+- [x] The model can be given a resting anchor (used later for the steering pad's centre); no caller uses it yet
+- [x] Keyboard steering still takes priority over the joystick
 - [ ] Steering on desktop and touch is unchanged when played by hand
-- [ ] `npm test` and `npm run build` pass
+- [x] `npm test` and `npm run build` pass
+
+## Comments
+
+Implemented as `Joystick` in `src/input/joystick.ts` (tests in `tests/input/joystick.test.ts`); `Input` feeds it pointer events. Steering by hand on desktop and touch still needs checking.
