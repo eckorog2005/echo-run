@@ -44,6 +44,10 @@ _Avoid_: Power-up, bomb
 The steering input of every tick of a run, snapped to a fixed grid. Together with the seed it reproduces the run exactly.
 _Avoid_: Recording, ghost data, demo
 
+**Steering pad**:
+The area beside the arena on a touch phone where the player steers. Touches inside it steer; touches on the arena never do.
+_Avoid_: Thumb pad, control pad, joystick (the stick drawn inside the pad)
+
 **Replay**:
 A finished run played back by re-simulating it from its seed and input log.
 _Avoid_: Playback, rewind

@@ -1,24 +1,14 @@
 import type { Vec } from '../game/model.ts';
+import { Joystick } from './joystick.ts';
 
 const KEYMAP: Record<string, 'l' | 'r' | 'u' | 'd'> = {
   ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r',
   ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd',
 };
 
-export const JOY_R = 38;
-
-export interface Joystick {
-  active: boolean;
-  id: number | null;
-  ax: number;
-  ay: number;
-  x: number;
-  y: number;
-}
-
 /** Keyboard plus a floating drag joystick: press anywhere on the stage and drag to steer. */
 export class Input {
-  readonly joy: Joystick = { active: false, id: null, ax: 0, ay: 0, x: 0, y: 0 };
+  readonly joy = new Joystick();
   joystickEnabled = false;
   private readonly keys = new Set<string>();
 
@@ -36,13 +26,11 @@ export class Input {
     });
     window.addEventListener('blur', () => {
       this.keys.clear();
-      this.joy.active = false;
+      this.joy.cancel();
     });
 
     stage.addEventListener('pointerdown', (e) => {
-      if (!this.joystickEnabled || this.joy.active) return;
-      const p = this.local(e);
-      Object.assign(this.joy, { active: true, id: e.pointerId, ax: p.x, ay: p.y, x: p.x, y: p.y });
+      if (!this.joystickEnabled || !this.joy.press(e.pointerId, this.local(e))) return;
       try {
         stage.setPointerCapture(e.pointerId);
       } catch {
@@ -50,21 +38,9 @@ export class Input {
       }
     });
     stage.addEventListener('pointermove', (e) => {
-      const j = this.joy;
-      if (!j.active || e.pointerId !== j.id) return;
-      const p = this.local(e);
-      j.x = p.x;
-      j.y = p.y;
-      // Drag the anchor along so reversing direction is instant.
-      const dx = j.x - j.ax, dy = j.y - j.ay, len = Math.hypot(dx, dy);
-      if (len > JOY_R) {
-        j.ax = j.x - (dx / len) * JOY_R;
-        j.ay = j.y - (dy / len) * JOY_R;
-      }
+      if (this.joy.active) this.joy.move(e.pointerId, this.local(e));
     });
-    const end = (e: PointerEvent): void => {
-      if (e.pointerId === this.joy.id) this.joy.active = false;
-    };
+    const end = (e: PointerEvent): void => this.joy.release(e.pointerId);
     stage.addEventListener('pointerup', end);
     stage.addEventListener('pointercancel', end);
   }
@@ -81,14 +57,6 @@ export class Input {
       const l = Math.hypot(x, y);
       return { x: x / l, y: y / l };
     }
-    const j = this.joy;
-    if (j.active) {
-      const dx = j.x - j.ax, dy = j.y - j.ay, len = Math.hypot(dx, dy);
-      if (len > 5) {
-        const m = Math.min(len, JOY_R) / JOY_R;
-        return { x: (dx / len) * m, y: (dy / len) * m };
-      }
-    }
-    return { x: 0, y: 0 };
+    return this.joy.vector();
   }
 }
