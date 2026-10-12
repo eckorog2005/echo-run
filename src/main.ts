@@ -1,12 +1,12 @@
 import './style.css';
 import { Audio } from './audio/audio.ts';
-import { TICK } from './game/constants.ts';
+import { ROUND_TICKS, TICK } from './game/constants.ts';
 import { dateKey } from './game/daily.ts';
 import { Session, type Hud, type Mode, type SessionEvent } from './game/session.ts';
 import { Input } from './input/input.ts';
 import { Effects } from './render/particles.ts';
 import { Renderer } from './render/renderer.ts';
-import { toArenaDirection, type Layout, type Rect } from './render/view.ts';
+import { LOW_TIME_LEFT, toArenaDirection, type Layout, type Rect } from './render/view.ts';
 import { browserStore } from './storage.ts';
 import { Overlay } from './ui/overlay.ts';
 
@@ -28,6 +28,10 @@ const hudEl = {
   mode: byId('mode-chip'),
   mute: byId<HTMLButtonElement>('mute'),
   muteLabel: byId('mute-label'),
+  timer: byId('timer'),
+  timerLabel: byId('timer-label'),
+  timerSecs: byId('timer-secs'),
+  timerFill: byId('timer-fill'),
 };
 
 const store = browserStore;
@@ -60,7 +64,7 @@ function place(el: HTMLElement, rect: Rect | null): void {
 function applyLayout(next: Layout): void {
   app.classList.toggle('phone', next.pad !== null);
   place(hudEl.header, next.hud);
-  place(hudEl.mode, next.timer);
+  place(hudEl.timer, next.timer);
   overlayEl.style.top = next.hud ? `${next.hud.y + next.hud.height}px` : '';
   input.joy.cancel();
   input.joy.confine(next.pad);
@@ -78,6 +82,11 @@ function renderHud(): void {
   hudEl.bestLabel.textContent = h.bestLabel;
   hudEl.best.textContent = h.best;
   hudEl.mode.textContent = h.mode;
+  hudEl.timer.classList.toggle('idle', h.round === null);
+  hudEl.timerLabel.textContent = h.timerLabel;
+  hudEl.timerSecs.textContent = `${(h.timeLeft * ROUND_TICKS * TICK).toFixed(1)} s`;
+  hudEl.timerFill.style.width = `${h.timeLeft * 100}%`;
+  hudEl.timerFill.classList.toggle('low', h.timeLeft < LOW_TIME_LEFT);
 }
 
 function renderMute(): void {

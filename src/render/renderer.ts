@@ -3,7 +3,7 @@ import type { Vec } from '../game/model.ts';
 import type { Scene } from '../game/scene.ts';
 import { JOY_R, type Joystick } from '../input/joystick.ts';
 import type { Effects } from './particles.ts';
-import { DEFAULT_PAD_SIDE, isPhone, layout, type Layout, type Rect } from './view.ts';
+import { DEFAULT_PAD_SIDE, LOW_TIME_LEFT, isPhone, layout, type Layout, type Rect } from './view.ts';
 
 type Palette = Record<'ink' | 'panel' | 'line' | 'text' | 'muted' | 'self' | 'echo' | 'orb' | 'danger' | 'erase', string>;
 
@@ -158,7 +158,7 @@ export class Renderer {
       ctx.globalAlpha = 1;
       this.circle(x, y, ORB_R * pulse);
       ctx.fill();
-      ctx.strokeStyle = scene.timeLeft < 0.3 ? C.danger : C.orb;
+      ctx.strokeStyle = scene.timeLeft < LOW_TIME_LEFT ? C.danger : C.orb;
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.arc(x, y, ORB_R + 9, -Math.PI / 2, -Math.PI / 2 + scene.timeLeft * Math.PI * 2);

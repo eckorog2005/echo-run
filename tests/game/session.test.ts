@@ -158,4 +158,64 @@ describe('Session', () => {
     expect(s.scene().player).toBeNull();
     expect(s.hud().score).toBe(0);
   });
+
+  it('reports no round and no time left on the title screen', () => {
+    const s = session();
+    expect(s.hud()).toMatchObject({ round: null, timeLeft: 0, timerLabel: '' });
+    s.start('endless');
+    s.menu();
+    expect(s.hud()).toMatchObject({ round: null, timeLeft: 0, timerLabel: '' });
+  });
+
+  it('reports the round and the time left during play, refilling the timer when an orb is collected', () => {
+    const s = session();
+    s.start('endless');
+    expect(s.hud()).toMatchObject({ round: 1, timeLeft: 1 });
+    for (let i = 0; i < ROUND_TICKS / 2; i++) s.tick(STILL);
+    expect(s.hud().timeLeft).toBeCloseTo(0.5, 5);
+
+    tickUntil(s, 'collect', towardOrb);
+    expect(s.hud()).toMatchObject({ round: 2, timeLeft: 1, timerLabel: 'Round 2 · Endless' });
+    s.tick(STILL);
+    expect(s.hud().timeLeft).toBeCloseTo(1 - 1 / ROUND_TICKS, 5);
+  });
+
+  it('reports the final round with no time left once the run is over', () => {
+    const s = session();
+    s.start('endless');
+    tickUntil(s, 'die');
+    expect(s.hud()).toMatchObject({ round: 1, timeLeft: 0 });
+    s.tick(STILL);
+    expect(s.hud()).toMatchObject({ round: 1, timeLeft: 0 });
+  });
+
+  it('reports the replayed round and its time left during a replay', () => {
+    const s = session();
+    s.start('endless');
+    runToCard(s, towardOrb);
+    s.watchReplay();
+    s.tick(STILL);
+    const first = s.hud();
+    expect(first.round).toBe(1);
+    expect(first.timeLeft).toBeGreaterThan(0.9);
+    expect(first.timeLeft).toBeLessThan(1);
+
+    let reachedRound2 = false;
+    for (let i = 0; i < ROUND_TICKS && s.screen === 'replay' && !reachedRound2; i++) {
+      s.tick(STILL);
+      reachedRound2 = s.hud().round === 2;
+    }
+    expect(reachedRound2).toBe(true);
+    expect(s.hud().timeLeft).toBeGreaterThan(0.9);
+  });
+
+  it('labels the timer with the round and mode, leaving out the date so practice always shows', () => {
+    const store = memoryStore();
+    const s = session(store);
+    s.start('daily');
+    expect(s.hud().timerLabel).toBe('Round 1 · Daily');
+    runToCard(s);
+    s.start('daily');
+    expect(s.hud().timerLabel).toBe('Round 1 · Daily · practice');
+  });
 });

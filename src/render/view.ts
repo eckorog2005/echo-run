@@ -30,6 +30,8 @@ export interface Layout {
 }
 
 export const DEFAULT_PAD_SIDE: PadSide = 'right';
+/** Below this fraction of the round left, the orb ring and the timer bar turn to the danger colour. */
+export const LOW_TIME_LEFT = 0.3;
 const PHONE_MAX_SIDE = 500;
 const MARGIN = 12;
 const PHONE_GAP = 10;

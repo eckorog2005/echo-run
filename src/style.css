@@ -128,7 +128,16 @@ footer { font-size: 11px; color: var(--muted); display: flex; justify-content: s
 .app.phone .stats { gap: 16px; }
 .app.phone .stat small { font-size: 9px; }
 .app.phone .stat b { font-size: 16px; }
-.app.phone .mode-chip { position: absolute; display: flex; align-items: center; border: 0; padding: 0; font-size: 10px; }
+.app.phone .mode-chip { display: none; }
+.timer { display: none; }
+.app.phone .timer { position: absolute; z-index: 1; display: flex; flex-direction: column; justify-content: center; gap: 6px; }
+.timer-row { display: flex; justify-content: space-between; gap: 12px; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.timer-row span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.timer-secs { color: var(--text); font-variant-numeric: tabular-nums; }
+.timer-track { height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.timer-fill { height: 100%; background: var(--orb); }
+.timer-fill.low { background: var(--danger); }
+.timer.idle { visibility: hidden; }
 .app.phone .mute { width: 44px; height: 44px; padding: 0; display: grid; place-items: center; border-radius: 12px; }
 .app.phone .mute-icon { display: block; }
 .app.phone #mute-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

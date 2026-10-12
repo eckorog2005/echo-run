@@ -11,3 +11,7 @@
 - [ ] Rotating between portrait and landscape mid-run releases the joystick and keeps the run going
 - [ ] Desktop and tablet layouts are unchanged
 - [ ] `npm test` and `npm run build` pass; checked by hand on a phone or device emulator
+
+## Comments
+
+From the ticket 04 review: `.app.phone` turns on whenever the layout has a pad, and under it the CSS hides the header's mode chip and places `#timer` at `layout.timer`. A landscape layout with a pad but no timer rectangle would therefore show neither the mode nor the timer. Either give landscape a timer/mode area in the HUD column, or tie the chip-hiding rule to the presence of a timer row instead of `.app.phone`.

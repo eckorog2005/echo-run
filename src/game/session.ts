@@ -45,6 +45,12 @@ export interface Hud {
   best: string;
   /** Mode chip text; empty on the title screen. */
   mode: string;
+  /** 1-based round of the live run or replay; null on the title screen. */
+  round: number | null;
+  /** Fraction of the round timer left, 0..1; 0 when no round is running. */
+  timeLeft: number;
+  /** Round and mode for the phone timer row; drops the date so "practice" is never truncated. Empty on the title screen. */
+  timerLabel: string;
 }
 
 export interface TitleInfo {
@@ -64,6 +70,10 @@ export interface SessionDeps {
 const BEST_KEY = 'echo-best-endless';
 const TRAIL_LENGTH = 14;
 const EMPTY: number[] = [];
+
+function timeLeft(g: GameState): number {
+  return Math.max(0, 1 - g.roundTick / ROUND_TICKS);
+}
 
 /** A few looping figure-eight echoes behind the title menu. */
 function demoEchoes(): Echo[] {
@@ -207,12 +217,18 @@ export class Session {
     const g = this._screen === 'title' ? null : this.game;
     const daily = this.mode === 'daily';
     const saved = daily ? loadDaily(this.deps.store, this.today) : null;
+    const running = this._screen === 'replay' && this.replay ? this.replay.state : this._screen === 'play' ? g : null;
+    const lastRun = running ?? g;
+    const modeName = daily ? `Daily${this.practice ? ' · practice' : ''}` : 'Endless';
     return {
       score: g ? g.score : 0,
       echoes: g ? g.echoes.length : 0,
       bestLabel: daily ? 'Today' : 'Best',
       best: daily ? (saved ? String(saved.score) : '–') : String(this.endlessBest),
       mode: this._screen === 'title' ? '' : daily ? `Daily · ${this.today}${this.practice ? ' · practice' : ''}` : 'Endless',
+      round: lastRun ? lastRun.round + 1 : null,
+      timeLeft: running ? timeLeft(running) : 0,
+      timerLabel: lastRun ? `Round ${lastRun.round + 1} · ${modeName}` : '',
     };
   }
 
@@ -256,7 +272,7 @@ export class Session {
       trail: showPlayer ? this.trail : [],
       orb: g.orb,
       eraser: g.eraser,
-      timeLeft: showPlayer ? Math.max(0, 1 - g.roundTick / ROUND_TICKS) : 0,
+      timeLeft: showPlayer ? timeLeft(g) : 0,
       killerN: g.cause?.kind === 'echo' ? g.cause.n : null,
       numbered: true,
     };
