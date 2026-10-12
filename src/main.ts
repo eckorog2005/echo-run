@@ -6,7 +6,8 @@ import { Session, type Hud, type Mode, type Screen, type SessionEvent } from './
 import { Input } from './input/input.ts';
 import { Effects } from './render/particles.ts';
 import { Renderer, type PadView } from './render/renderer.ts';
-import { LOW_TIME_LEFT, toArenaDirection, type Layout, type Rect } from './render/view.ts';
+import { LOW_TIME_LEFT, toArenaDirection, type Layout, type PadSide, type Rect } from './render/view.ts';
+import { loadPadSide, savePadSide } from './render/padSide.ts';
 import { browserStore } from './storage.ts';
 import { Overlay } from './ui/overlay.ts';
 
@@ -30,6 +31,7 @@ const hudEl = {
   muteLabel: byId('mute-label'),
   timer: byId('timer'),
   timerLabel: byId('timer-label'),
+  timerRound: byId('timer-round'),
   timerSecs: byId('timer-secs'),
   timerFill: byId('timer-fill'),
 };
@@ -37,16 +39,17 @@ const hudEl = {
 const store = browserStore;
 const session = new Session({ store, today: () => dateKey(), randomSeed: () => (Math.random() * 2 ** 32) >>> 0 });
 const input = new Input(stage);
-const renderer = new Renderer(byId<HTMLCanvasElement>('cv'), stage, applyLayout);
+const renderer = new Renderer(byId<HTMLCanvasElement>('cv'), stage, loadPadSide(store), applyLayout);
 const audio = new Audio(store);
 const fx = new Effects();
 const overlay = new Overlay(overlayEl);
 const C = renderer.colors;
 
 // ---------- Layout ----------
-// A null rect hands placement back to the stylesheet.
+// A null rect hands placement back to the stylesheet. Measures from the parent, not offsetParent,
+// which is null while the element is hidden.
 function place(el: HTMLElement, rect: Rect | null): void {
-  const parent = el.offsetParent?.getBoundingClientRect();
+  const parent = el.parentElement?.getBoundingClientRect();
   if (!rect || !parent) {
     el.style.removeProperty('left');
     el.style.removeProperty('top');
@@ -62,11 +65,11 @@ function place(el: HTMLElement, rect: Rect | null): void {
 }
 
 function applyLayout(next: Layout): void {
-  app.classList.toggle('phone', next.pad !== null);
+  app.classList.toggle('phone', next.kind !== 'stage');
+  app.classList.toggle('landscape', next.kind === 'landscape');
   place(hudEl.header, next.hud);
   place(hudEl.timer, next.timer);
-  // Sheets cover the timer row but stop under the HUD so mute stays reachable.
-  overlayEl.style.top = next.hud ? `${next.hud.y + next.hud.height}px` : '';
+  place(overlayEl, next.sheet);
   input.joy.cancel();
   input.joy.confine(next.pad);
 }
@@ -85,6 +88,7 @@ function renderHud(): void {
   hudEl.mode.textContent = h.mode;
   hudEl.timer.classList.toggle('idle', h.round === null);
   hudEl.timerLabel.textContent = h.timerLabel;
+  hudEl.timerRound.textContent = h.round === null ? '' : `Round ${h.round}`;
   hudEl.timerSecs.textContent = `${(h.timeLeft * ROUND_TICKS * TICK).toFixed(1)} s`;
   hudEl.timerFill.style.width = `${h.timeLeft * 100}%`;
   hudEl.timerFill.classList.toggle('low', h.timeLeft < LOW_TIME_LEFT);
@@ -104,7 +108,13 @@ renderMute();
 function showTitle(): void {
   session.menu();
   input.joystickEnabled = false;
-  overlay.showTitle(session.titleInfo(), { daily: () => startRun('daily'), endless: () => startRun('endless') });
+  const padSide = renderer.layout.kind === 'stage' ? null : { side: renderer.padSide, choose: choosePadSide };
+  overlay.showTitle(session.titleInfo(), { daily: () => startRun('daily'), endless: () => startRun('endless') }, padSide);
+}
+
+function choosePadSide(side: PadSide): void {
+  savePadSide(store, side);
+  renderer.setPadSide(side);
 }
 
 function startRun(mode: Mode): void {

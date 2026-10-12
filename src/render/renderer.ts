@@ -3,7 +3,7 @@ import type { Vec } from '../game/model.ts';
 import type { Scene } from '../game/scene.ts';
 import { JOY_R, type Joystick } from '../input/joystick.ts';
 import type { Effects } from './particles.ts';
-import { DEFAULT_PAD_SIDE, LOW_TIME_LEFT, isPhone, layout, type Layout, type Rect } from './view.ts';
+import { DEFAULT_PAD_SIDE, LOW_TIME_LEFT, isPhone, layout, type Layout, type PadSide, type Rect } from './view.ts';
 
 /** What the steering pad shows: the joystick, a prompt such as "Tap to skip", or nothing. */
 export type PadView = { kind: 'steer'; joy: Joystick } | { kind: 'prompt'; label: string } | null;
@@ -21,6 +21,7 @@ export class Renderer {
   constructor(
     private readonly canvas: HTMLCanvasElement,
     private readonly stage: HTMLElement,
+    private side: PadSide,
     private readonly onLayout: (layout: Layout) => void,
   ) {
     const ctx = canvas.getContext('2d');
@@ -48,6 +49,16 @@ export class Renderer {
     return this.regions;
   }
 
+  get padSide(): PadSide {
+    return this.side;
+  }
+
+  /** Lays the screen out again for the new side. */
+  setPadSide(side: PadSide): void {
+    this.side = side;
+    this.resize();
+  }
+
   private resize(): void {
     const r = this.stage.getBoundingClientRect();
     this.dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -56,7 +67,7 @@ export class Renderer {
     this.canvas.width = Math.round(r.width * this.dpr);
     this.canvas.height = Math.round(r.height * this.dpr);
     const phone = isPhone({ width: innerWidth, height: innerHeight }, matchMedia('(pointer: coarse)').matches);
-    const next = layout({ width: this.cw, height: this.ch }, phone, DEFAULT_PAD_SIDE);
+    const next = layout({ width: this.cw, height: this.ch }, phone, this.side);
     const changed = JSON.stringify(next) !== JSON.stringify(this.regions);
     this.regions = next;
     if (changed) this.onLayout(next);

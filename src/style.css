@@ -142,14 +142,14 @@ footer { font-size: 11px; color: var(--muted); display: flex; justify-content: s
 .app.phone .mute-icon { display: block; }
 .app.phone #mute-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .app.phone .stage { border: 0; border-radius: 0; background: var(--ink); overflow: visible; }
-/* The negative bottom runs the sheet under the home indicator. */
+/* main.ts places the overlay beside or below the HUD; the card's negative margin runs the sheet under the home indicator. */
 .app.phone .overlay {
-  z-index: 2; display: flex; flex-direction: column; justify-content: flex-end; padding: 0; overflow: hidden;
-  bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
+  z-index: 2; display: flex; flex-direction: column; justify-content: flex-end; padding: 0; overflow: visible;
   background: color-mix(in srgb, var(--ink) 30%, transparent);
 }
 .app.phone .card {
   max-width: none; max-height: min(85dvh, 100%); overflow-y: auto; overscroll-behavior: contain;
+  margin-bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
   background: var(--panel); border-top: 1px solid var(--line); border-radius: 20px 20px 0 0;
   padding: 20px 16px calc(16px + env(safe-area-inset-bottom, 0px));
   box-shadow: 0 -12px 32px color-mix(in srgb, var(--ink) 70%, transparent);
@@ -163,6 +163,27 @@ footer { font-size: 11px; color: var(--muted); display: flex; justify-content: s
 }
 .app.phone .card button { min-height: 44px; }
 .app.phone footer { display: none; }
+
+.pad-side { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--line); padding-top: 14px; }
+.pad-side small { font-size: 10px; text-transform: uppercase; letter-spacing: .14em; color: var(--muted); }
+.seg { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; flex: none; }
+.seg button { background: transparent; color: var(--muted); border: 0; font: 600 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; padding: 0 16px; min-height: 44px; }
+.seg button[aria-pressed="true"] { background: var(--line); color: var(--text); }
+#timer-round { display: none; }
+
+/* Landscape phones: the HUD is a column beside the arena, with the timer at its foot. */
+.app.phone.landscape header { flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 10px; }
+.app.phone.landscape h1 { font-size: 14px; }
+.app.phone.landscape .mode-chip { display: block; align-self: flex-start; font-size: 9px; padding: 3px 8px; border-radius: 8px; line-height: 1.4; }
+.app.phone.landscape .mode-chip:empty { display: none; }
+.app.phone.landscape .stats { flex: 1; flex-direction: column; align-items: stretch; margin-left: 0; gap: 6px; }
+.app.phone.landscape .stat { flex-direction: row; align-items: baseline; justify-content: space-between; }
+.app.phone.landscape .stat b { font-size: 18px; }
+.app.phone.landscape .mute { width: 100%; margin-top: auto; }
+.app.phone.landscape .timer-row { font-size: 9px; }
+.app.phone.landscape #timer-label { display: none; }
+.app.phone.landscape #timer-round { display: inline; }
+.app.phone.landscape .card { width: min(100%, 560px); align-self: center; border-inline: 1px solid var(--line); }
 
 /* Touch screens have no Space key. */
 @media (hover: none) and (pointer: coarse) {
