@@ -67,6 +67,7 @@ function place(el: HTMLElement, rect: Rect | null): void {
 function applyLayout(next: Layout): void {
   app.classList.toggle('phone', next.kind !== 'stage');
   app.classList.toggle('landscape', next.kind === 'landscape');
+  app.classList.toggle('pad-left', next.kind === 'landscape' && next.pad !== null && next.pad.x < next.arena.x);
   place(hudEl.header, next.hud);
   place(hudEl.timer, next.timer);
   place(overlayEl, next.sheet);

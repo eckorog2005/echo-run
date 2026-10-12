@@ -43,8 +43,8 @@ export class Overlay {
     this.primary = null;
   }
 
-  private show(html: string, actions: Actions, primary: string): void {
-    this.el.innerHTML = `<div class="card">${html}</div>`;
+  private show(html: string, actions: Actions, primary: string, kind: 'title' | 'death'): void {
+    this.el.innerHTML = `<div class="card ${kind}">${html}</div>`;
     this.el.hidden = false;
     this.el.scrollTop = 0;
     this.primary = actions[primary] ?? null;
@@ -100,6 +100,7 @@ export class Overlay {
       </div>`,
       actions,
       played ? 'endless' : 'daily',
+      'title',
     );
     if (padSide) this.bindPadSide(padSide.choose);
   }
@@ -130,9 +131,11 @@ export class Overlay {
     const bestNote = info.mode === 'endless' ? ` Best: <strong>${info.best}</strong>.` : '';
     this.show(
       `
-      ${badge}
-      <h2>${reason}</h2>
-      <div class="big">${info.score}</div>
+      <div class="headline">
+        ${badge}
+        <h2>${reason}</h2>
+        <div class="big">${info.score}</div>
+      </div>
       <p>${lead}${made}${info.score === 0 ? '' : `${erasedNote}.`}${bestNote}</p>
       ${shareLine ? shareBlock(shareLine) : ''}
       <div class="row">
@@ -143,6 +146,7 @@ export class Overlay {
       <span class="hint"><kbd>Space</kbd> runs again</span>`,
       actions,
       'again',
+      'death',
     );
   }
 }
