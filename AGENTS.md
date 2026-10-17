@@ -2,31 +2,15 @@
 
 ## Project Structure & Module Organization
 
-This repository is a small TypeScript/Vite implementation of **Echo Run**, an arcade game where every route you take to an orb comes back as a looping echo you must avoid. `prototype/echo-run.html` is the original single-file prototype, kept for reference.
+**Echo Run** is a small TypeScript/Vite arcade game: every route you take to an orb comes back as a looping echo you must avoid. `prototype/echo-run.html` is the original single-file prototype, kept for reference.
 
-- `src/main.ts` boots the game, runs the fixed 60 Hz loop, and adapts DOM input, audio, particles, and the overlay to the Session.
-- `src/game/` holds all game rules and must stay free of DOM, audio, and `Math.random`:
-  - `constants.ts` tuning values (speed, radii, round length, grace ticks, eraser cadence).
-  - `model.ts` state, echo, and event types.
-  - `rng.ts` seeded PRNG and string hash; `orbs.ts` builds a seeded course of orb and eraser positions.
-  - `sim.ts` `step(state, input)` advances one tick and returns events; it is deterministic for a given seed and input log.
-  - `replay.ts` plays a finished run back by re-simulating it from its seed and input log.
-  - `session.ts` the run lifecycle (title, play, dead, replay screens), daily and endless records, and the `Scene` for every screen (`scene.ts`).
-  - `daily.ts` date keys, daily seeds, and the one-counted-attempt rule; `share.ts` builds the share line.
-- `src/render/` draws a `Scene` to canvas (`renderer.ts`) and owns visual-only particles and shake (`particles.ts`).
-- `src/input/`, `src/audio/`, `src/ui/` handle keyboard and drag joystick, WebAudio tones, and the overlay cards.
-- `src/storage.ts` wraps localStorage in try/catch and provides an in-memory store for tests.
-
-Consult `SPEC.md` for game rules and `STORIES.md` for player scenarios.
+- `src/game/` holds all game rules and must stay free of DOM, audio, and `Math.random`; `tests/repo/conventions.test.ts` enforces this.
+- `src/main.ts` is the DOM adapter and fixed 60 Hz loop. `src/render/`, `src/input/`, `src/audio/`, `src/ui/` draw and handle input; `src/storage.ts` wraps localStorage.
+- `CLAUDE.md` explains how the pieces connect. `SPEC.md` has the game rules and `STORIES.md` the player scenarios.
 
 ## Build, Test, and Development Commands
 
-- `npm install` installs the locked development dependencies.
-- `npm run dev` starts the Vite development server with hot reload.
-- `npm test` runs the Vitest suite once; use this before submitting changes.
-- `npm run test:watch` reruns affected tests during development.
-- `npm run build` type-checks all TypeScript projects, then emits a production build to `dist/`.
-- `npm run preview` serves `dist/` locally.
+Scripts are in `package.json`. Run `npm test` and `npm run build` before submitting changes. `npm install` points git at `.githooks/`, whose `commit-msg` hook rejects non-Conventional-Commit messages.
 
 ## Coding Style & Naming Conventions
 
