@@ -4,13 +4,13 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-human
+**Status:** resolved
 
 - [x] A pure joystick model exists in the input layer with no DOM dependencies
 - [x] Node tests cover: press then move inside the radius, moving past the radius dragging the anchor, reversal after a drag, the dead zone, and release
 - [x] The model can be given a resting anchor (used later for the steering pad's centre); no caller uses it yet
 - [x] Keyboard steering still takes priority over the joystick
-- [ ] Steering on desktop and touch is unchanged when played by hand
+- [x] Steering on desktop and touch is unchanged when played by hand
 - [x] `npm test` and `npm run build` pass
 
 ## Comments
