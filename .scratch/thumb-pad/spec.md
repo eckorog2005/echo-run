@@ -1,6 +1,6 @@
 # Spec: Thumb Pad mobile layout
 
-Status: ready-for-agent
+Status: resolved
 
 ## Problem Statement
 
