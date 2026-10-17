@@ -10,7 +10,7 @@
 
 ## Build, Test, and Development Commands
 
-Scripts are in `package.json`. Run `npm test` and `npm run build` before submitting changes. `npm install` points git at `.githooks/`, whose `commit-msg` hook rejects non-Conventional-Commit messages.
+Scripts are in `package.json`. Run `npm run lint`, `npm test`, and `npm run build` before submitting changes. `npm install` points git at `.githooks/`, whose `commit-msg` hook rejects non-Conventional-Commit messages.
 
 ## Coding Style & Naming Conventions
 
