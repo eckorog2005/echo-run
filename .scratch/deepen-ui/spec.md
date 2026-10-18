@@ -1,6 +1,6 @@
 # Spec: Deepen the screen layout, steering, and HUD modules
 
-Status: ready-for-agent
+Status: resolved
 
 ## Problem Statement
 

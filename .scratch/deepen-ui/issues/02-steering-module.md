@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 (Screen layout owner)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] Dragging steers in proportion to distance; on a phone layout presses outside the steering pad are ignored; on the stage layout presses anywhere steer
 - [x] `direction(false)` returns zero and releases a held touch; a press while not playing is ignored
@@ -13,5 +13,5 @@
 - [x] Keys win over a held touch, diagonals are normalised, and blur releases keys and touch
 - [x] The stick's knob never leaves the joystick radius
 - [x] All of the above are tested in Node through the steering module's interface; the old rotation-function tests are rewritten through it and deleted
-- [ ] Steering, idle stick position, and death/menu/replay behaviour are unchanged on desktop and on a phone-sized touch viewport in both orientations
+- [x] Steering, idle stick position, and death/menu/replay behaviour are unchanged on desktop and on a phone-sized touch viewport in both orientations
 - [x] `npm run lint`, `npm test`, and `npm run build` pass
