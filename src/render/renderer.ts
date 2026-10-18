@@ -2,7 +2,7 @@ import { ECHO_R, ERASER_R, ORB_R, PLAYER_R, WORLD_H, WORLD_W } from '../game/con
 import type { Scene } from '../game/scene.ts';
 import type { Stick } from '../input/steering.ts';
 import type { Effects } from './particles.ts';
-import { LOW_TIME_LEFT, type Layout, type Rect, type Size } from './view.ts';
+import type { Layout, Rect, Size } from './view.ts';
 
 /** What the steering pad shows: the joystick, a prompt such as "Tap to skip", or nothing. */
 export type PadView = { kind: 'steer'; stick: Stick } | { kind: 'prompt'; label: string } | null;
@@ -141,7 +141,7 @@ export class Renderer {
       ctx.globalAlpha = 1;
       this.circle(x, y, ORB_R * pulse);
       ctx.fill();
-      ctx.strokeStyle = scene.timeLeft < LOW_TIME_LEFT ? C.danger : C.orb;
+      ctx.strokeStyle = scene.lowTime ? C.danger : C.orb;
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.arc(x, y, ORB_R + 9, -Math.PI / 2, -Math.PI / 2 + scene.timeLeft * Math.PI * 2);

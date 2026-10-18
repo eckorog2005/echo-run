@@ -2,8 +2,10 @@ import {
   CARD_DELAY_TICKS,
   ERASER_BANNER_TICKS,
   GRACE_TICKS,
+  LOW_TIME_LEFT,
   REPLAY_SPEED,
   ROUND_TICKS,
+  TICK,
   WORLD_H,
   WORLD_W,
 } from './constants.ts';
@@ -45,10 +47,14 @@ export interface Hud {
   best: string;
   /** Mode chip text; empty on the title screen. */
   mode: string;
-  /** 1-based round of the live run or replay; null on the title screen. */
-  round: number | null;
+  /** "Round N" for the live run or replay; empty on the title screen. */
+  roundLabel: string;
   /** Fraction of the round timer left, 0..1; 0 when no round is running. */
   timeLeft: number;
+  /** Seconds left in the round, one decimal, e.g. "4.2 s". */
+  secondsLeft: string;
+  /** Under LOW_TIME_LEFT of a running round is left; false when no round is running. */
+  lowTime: boolean;
   /** Round and mode for the phone timer row; drops the date so "practice" is never truncated. Empty on the title screen. */
   timerLabel: string;
 }
@@ -73,6 +79,10 @@ const EMPTY: number[] = [];
 
 function timeLeft(g: GameState): number {
   return Math.max(0, 1 - g.roundTick / ROUND_TICKS);
+}
+
+function isLowTime(left: number): boolean {
+  return left < LOW_TIME_LEFT;
 }
 
 /** A few looping figure-eight echoes behind the title menu. */
@@ -100,7 +110,8 @@ function demoEchoes(): Echo[] {
 export class Session {
   private _screen: Screen = 'title';
   private mode: Mode = 'endless';
-  private today: string;
+  private today = '';
+  private daily: DailyRecord | null = null;
   private practice = false;
   private game: GameState | null = null;
   private replay: Replay | null = null;
@@ -113,7 +124,7 @@ export class Session {
   private demoTick = 0;
 
   constructor(private readonly deps: SessionDeps) {
-    this.today = deps.today();
+    this.refreshDaily();
     this.endlessBest = parseInt(deps.store.get(BEST_KEY) ?? '0', 10) || 0;
   }
 
@@ -123,8 +134,8 @@ export class Session {
 
   start(mode: Mode): void {
     this.mode = mode;
-    this.today = this.deps.today();
-    this.practice = mode === 'daily' && loadDaily(this.deps.store, this.today) !== null;
+    this.refreshDaily();
+    this.practice = mode === 'daily' && this.daily !== null;
     this.game = createGame(mode === 'daily' ? dailySeed(this.today) : this.deps.randomSeed());
     this.replay = null;
     this.result = null;
@@ -153,7 +164,12 @@ export class Session {
     this._screen = 'title';
     this.game = null;
     this.replay = null;
+    this.refreshDaily();
+  }
+
+  private refreshDaily(): void {
     this.today = this.deps.today();
+    this.daily = loadDaily(this.deps.store, this.today);
   }
 
   /** Advances one fixed tick. `input` only steers during play. */
@@ -206,7 +222,10 @@ export class Session {
       outcome = { kind: 'practice' };
     } else {
       const rec: DailyRecord = { score: g.score, erased: g.erased, cause };
-      if (recordDaily(this.deps.store, this.today, rec)) outcome = { kind: 'counted', shareLine: shareText(this.today, rec) };
+      if (recordDaily(this.deps.store, this.today, rec)) {
+        this.daily = rec;
+        outcome = { kind: 'counted', shareLine: shareText(this.today, rec) };
+      }
     }
     this.result = { mode: this.mode, outcome, cause, score: g.score, erased: g.erased, best: this.endlessBest };
     this._screen = 'dead';
@@ -216,25 +235,28 @@ export class Session {
   hud(): Hud {
     const g = this._screen === 'title' ? null : this.game;
     const daily = this.mode === 'daily';
-    const saved = daily ? loadDaily(this.deps.store, this.today) : null;
     const running = this._screen === 'replay' && this.replay ? this.replay.state : this._screen === 'play' ? g : null;
     const lastRun = running ?? g;
+    const left = running ? timeLeft(running) : 0;
+    const roundLabel = lastRun ? `Round ${lastRun.round + 1}` : '';
     const modeName = daily ? `Daily${this.practice ? ' · practice' : ''}` : 'Endless';
     return {
       score: g ? g.score : 0,
       echoes: g ? g.echoes.length : 0,
       bestLabel: daily ? 'Today' : 'Best',
-      best: daily ? (saved ? String(saved.score) : '–') : String(this.endlessBest),
+      best: daily ? (this.daily ? String(this.daily.score) : '–') : String(this.endlessBest),
       mode: this._screen === 'title' ? '' : daily ? `Daily · ${this.today}${this.practice ? ' · practice' : ''}` : 'Endless',
-      round: lastRun ? lastRun.round + 1 : null,
-      timeLeft: running ? timeLeft(running) : 0,
-      timerLabel: lastRun ? `Round ${lastRun.round + 1} · ${modeName}` : '',
+      roundLabel,
+      timeLeft: left,
+      secondsLeft: `${(left * ROUND_TICKS * TICK).toFixed(1)} s`,
+      lowTime: running !== null && isLowTime(left),
+      timerLabel: lastRun ? `${roundLabel} · ${modeName}` : '',
     };
   }
 
   titleInfo(): TitleInfo {
-    const daily = loadDaily(this.deps.store, this.today);
-    return { today: this.today, daily, shareLine: daily ? shareText(this.today, daily) : null };
+    const { today, daily } = this;
+    return { today, daily, shareLine: daily ? shareText(today, daily) : null };
   }
 
   scene(): Scene {
@@ -258,12 +280,13 @@ export class Session {
     }
     return {
       echoes: this.demo, route: EMPTY, routeLen: 0, player: null, trail: [], orb: null, eraser: null,
-      timeLeft: 0, killerN: null, numbered: false, banner: null, bannerAlpha: 0,
+      timeLeft: 0, lowTime: false, killerN: null, numbered: false, banner: null, bannerAlpha: 0,
     };
   }
 
   /** The parts of a play or replay frame that come straight from a GameState. */
   private runScene(g: GameState, showPlayer: boolean): Omit<Scene, 'banner' | 'bannerAlpha'> {
+    const left = showPlayer ? timeLeft(g) : 0;
     return {
       echoes: g.echoes,
       route: showPlayer ? g.rec : EMPTY,
@@ -272,7 +295,8 @@ export class Session {
       trail: showPlayer ? this.trail : [],
       orb: g.orb,
       eraser: g.eraser,
-      timeLeft: showPlayer ? timeLeft(g) : 0,
+      timeLeft: left,
+      lowTime: showPlayer && isLowTime(left),
       killerN: g.cause?.kind === 'echo' ? g.cause.n : null,
       numbered: true,
     };

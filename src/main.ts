@@ -1,6 +1,6 @@
 import './style.css';
 import { Audio } from './audio/audio.ts';
-import { ROUND_TICKS, TICK } from './game/constants.ts';
+import { TICK } from './game/constants.ts';
 import { dateKey } from './game/daily.ts';
 import { Session, type Hud, type Mode, type Screen, type SessionEvent } from './game/session.ts';
 import { Input } from './input/input.ts';
@@ -8,7 +8,7 @@ import { Steering } from './input/steering.ts';
 import { Effects } from './render/particles.ts';
 import { Renderer, type PadView } from './render/renderer.ts';
 import { ScreenLayout } from './render/screenLayout.ts';
-import { LOW_TIME_LEFT, type Layout, type PadSide, type Rect } from './render/view.ts';
+import type { Layout, PadSide, Rect } from './render/view.ts';
 import { browserStore } from './storage.ts';
 import { Overlay } from './ui/overlay.ts';
 
@@ -104,12 +104,12 @@ function renderHud(): void {
   hudEl.bestLabel.textContent = h.bestLabel;
   hudEl.best.textContent = h.best;
   hudEl.mode.textContent = h.mode;
-  hudEl.timer.classList.toggle('idle', h.round === null);
+  hudEl.timer.classList.toggle('idle', !h.roundLabel);
   hudEl.timerLabel.textContent = h.timerLabel;
-  hudEl.timerRound.textContent = h.round === null ? '' : `Round ${h.round}`;
-  hudEl.timerSecs.textContent = `${(h.timeLeft * ROUND_TICKS * TICK).toFixed(1)} s`;
+  hudEl.timerRound.textContent = h.roundLabel;
+  hudEl.timerSecs.textContent = h.secondsLeft;
   hudEl.timerFill.style.width = `${h.timeLeft * 100}%`;
-  hudEl.timerFill.classList.toggle('low', h.timeLeft < LOW_TIME_LEFT);
+  hudEl.timerFill.classList.toggle('low', h.lowTime);
 }
 
 function renderMute(): void {

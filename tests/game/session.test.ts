@@ -76,6 +76,46 @@ describe('Session', () => {
     expect(s.hud()).toMatchObject({ bestLabel: 'Today', best: '0' });
   });
 
+  it('shows the day\'s saved score as soon as the counted attempt ends', () => {
+    const s = session();
+    s.start('daily');
+    expect(s.hud()).toMatchObject({ bestLabel: 'Today', best: '–' });
+    tickUntil(s, 'die');
+    expect(s.hud().best).toBe('0');
+    s.menu();
+    expect(s.hud().best).toBe('0');
+  });
+
+  it('picks up a new day\'s empty record when returning to the menu after midnight', () => {
+    const store = memoryStore();
+    let today = TODAY;
+    const s = new Session({ store, today: () => today, randomSeed: () => 42 });
+    s.start('daily');
+    runToCard(s);
+    today = '2026-10-04';
+    s.menu();
+    expect(s.hud().best).toBe('–');
+    expect(s.titleInfo()).toEqual({ today: '2026-10-04', daily: null, shareLine: null });
+    s.start('daily');
+    expect(s.hud()).toMatchObject({ mode: 'Daily · 2026-10-04', best: '–' });
+    expect(runToCard(s).outcome.kind).toBe('counted');
+  });
+
+  it('does not read storage to build the HUD each frame', () => {
+    const store = memoryStore();
+    let reads = 0;
+    const counting: KeyValueStore = { get: (k) => (reads++, store.get(k)), set: (k, v) => store.set(k, v) };
+    const s = session(counting);
+    s.start('daily');
+    reads = 0;
+    for (let i = 0; i < 100; i++) {
+      s.tick(STILL);
+      s.hud();
+      s.scene();
+    }
+    expect(reads).toBe(0);
+  });
+
   it('plays the same daily course every time that day', () => {
     const a = session();
     const b = session(memoryStore());
@@ -161,32 +201,49 @@ describe('Session', () => {
 
   it('reports no round and no time left on the title screen', () => {
     const s = session();
-    expect(s.hud()).toMatchObject({ round: null, timeLeft: 0, timerLabel: '' });
+    expect(s.hud()).toMatchObject({ roundLabel: '', timeLeft: 0, secondsLeft: '0.0 s', timerLabel: '' });
     s.start('endless');
     s.menu();
-    expect(s.hud()).toMatchObject({ round: null, timeLeft: 0, timerLabel: '' });
+    expect(s.hud()).toMatchObject({ roundLabel: '', timeLeft: 0, secondsLeft: '0.0 s', timerLabel: '' });
   });
 
   it('reports the round and the time left during play, refilling the timer when an orb is collected', () => {
     const s = session();
     s.start('endless');
-    expect(s.hud()).toMatchObject({ round: 1, timeLeft: 1 });
+    expect(s.hud()).toMatchObject({ roundLabel: 'Round 1', timeLeft: 1, secondsLeft: '7.0 s' });
     for (let i = 0; i < ROUND_TICKS / 2; i++) s.tick(STILL);
     expect(s.hud().timeLeft).toBeCloseTo(0.5, 5);
+    expect(s.hud().secondsLeft).toBe('3.5 s');
+    for (let i = 0; i < 6; i++) s.tick(STILL);
+    expect(s.hud().secondsLeft).toBe('3.4 s');
 
     tickUntil(s, 'collect', towardOrb);
-    expect(s.hud()).toMatchObject({ round: 2, timeLeft: 1, timerLabel: 'Round 2 · Endless' });
+    expect(s.hud()).toMatchObject({ roundLabel: 'Round 2', timeLeft: 1, timerLabel: 'Round 2 · Endless' });
     s.tick(STILL);
     expect(s.hud().timeLeft).toBeCloseTo(1 - 1 / ROUND_TICKS, 5);
+  });
+
+  it('flags low time on the HUD and the scene at the same tick', () => {
+    const s = session();
+    expect(s.hud().lowTime).toBe(false);
+    expect(s.scene().lowTime).toBe(false);
+    s.start('endless');
+    for (let i = 0; i < 294; i++) s.tick(STILL);
+    expect(s.hud()).toMatchObject({ secondsLeft: '2.1 s', lowTime: false });
+    expect(s.scene().lowTime).toBe(false);
+    s.tick(STILL);
+    expect(s.hud().lowTime).toBe(true);
+    expect(s.scene().lowTime).toBe(true);
   });
 
   it('reports the final round with no time left once the run is over', () => {
     const s = session();
     s.start('endless');
     tickUntil(s, 'die');
-    expect(s.hud()).toMatchObject({ round: 1, timeLeft: 0 });
+    expect(s.hud()).toMatchObject({ roundLabel: 'Round 1', timeLeft: 0, secondsLeft: '0.0 s', lowTime: false });
+    expect(s.scene().lowTime).toBe(false);
     s.tick(STILL);
-    expect(s.hud()).toMatchObject({ round: 1, timeLeft: 0 });
+    expect(s.hud()).toMatchObject({ roundLabel: 'Round 1', timeLeft: 0 });
   });
 
   it('reports the replayed round and its time left during a replay', () => {
@@ -196,14 +253,15 @@ describe('Session', () => {
     s.watchReplay();
     s.tick(STILL);
     const first = s.hud();
-    expect(first.round).toBe(1);
+    expect(first.roundLabel).toBe('Round 1');
     expect(first.timeLeft).toBeGreaterThan(0.9);
     expect(first.timeLeft).toBeLessThan(1);
+    expect(first).toMatchObject({ secondsLeft: '7.0 s', lowTime: false });
 
     let reachedRound2 = false;
     for (let i = 0; i < ROUND_TICKS && s.screen === 'replay' && !reachedRound2; i++) {
       s.tick(STILL);
-      reachedRound2 = s.hud().round === 2;
+      reachedRound2 = s.hud().roundLabel === 'Round 2';
     }
     expect(reachedRound2).toBe(true);
     expect(s.hud().timeLeft).toBeGreaterThan(0.9);
