@@ -112,3 +112,44 @@ function fitArena(stage: Size): { arena: Rect; view: ArenaView } {
   const y = (stage.height - height) / 2;
   return { arena: { x, y, width, height }, view: { rotated, scale, offsetX: x, offsetY: y } };
 }
+
+const BANNER_TOP = 28;
+const BANNER_INSET = 24;
+const BANNER_FONT = 14;
+const BANNER_LINE = 18;
+
+/** Where the banner goes, in stage pixels, sized in arena units like everything else in the arena. */
+export interface BannerBox {
+  x: number;
+  y: number;
+  maxWidth: number;
+  fontSize: number;
+  lineHeight: number;
+}
+
+// The arena rect is already in screen orientation, so this is the top edge as the player sees it, rotated or not.
+export function bannerBox(arena: Rect, scale: number): BannerBox {
+  return {
+    x: arena.x + arena.width / 2,
+    y: arena.y + BANNER_TOP * scale,
+    maxWidth: arena.width - BANNER_INSET * 2 * scale,
+    fontSize: BANNER_FONT * scale,
+    lineHeight: BANNER_LINE * scale,
+  };
+}
+
+export function wrapText(text: string, maxWidth: number, measure: (line: string) => number): string[] {
+  const lines: string[] = [];
+  let line = '';
+  for (const word of text.split(' ')) {
+    const next = line ? `${line} ${word}` : word;
+    if (line && measure(next) > maxWidth) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = next;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}

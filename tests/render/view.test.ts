@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isPhone, layout, type ArenaView, type Rect } from '../../src/render/view.ts';
+import { bannerBox, isPhone, layout, wrapText, type ArenaView, type Rect } from '../../src/render/view.ts';
 
 const view = (width: number, height: number): ArenaView => layout({ width, height }, false, 'right').view;
 
@@ -175,5 +175,39 @@ describe('isPhone', () => {
     expect(isPhone({ width: 768, height: 1024 }, true)).toBe(false);
     expect(isPhone({ width: 501, height: 900 }, true)).toBe(false);
     expect(isPhone({ width: 390, height: 844 }, false)).toBe(false);
+  });
+});
+
+describe('bannerBox', () => {
+  it('centres the banner along the top of the upright arena, where it always was', () => {
+    const l = layout({ width: 1024, height: 724 }, false, 'right');
+    expect(bannerBox(l.arena, l.view.scale)).toEqual({ x: 512, y: 40, maxWidth: 952, fontSize: 14, lineHeight: 18 });
+  });
+
+  it('centres the banner along the top of the rotated arena as the player sees it, not along its right side', () => {
+    const l = layout({ width: 390, height: 763 }, true, 'right');
+    const box = bannerBox(l.arena, l.view.scale);
+    const s = 366 / 700;
+    expect(box.x).toBeCloseTo(195, 5);
+    expect(box.y).toBeCloseTo(54 + 28 * s, 5);
+    expect(box.maxWidth).toBeCloseTo(366 - 48 * s, 5);
+    expect(box.fontSize).toBeCloseTo(14 * s, 5);
+  });
+});
+
+describe('wrapText', () => {
+  const measure = (t: string): number => t.length * 10;
+
+  it('keeps text that fits on one line', () => {
+    expect(wrapText('echo #3 joins', 200, measure)).toEqual(['echo #3 joins']);
+  });
+
+  it('breaks between words when the text is wider than the arena', () => {
+    expect(wrapText('eraser up: grab it to delete your oldest echo', 250, measure))
+      .toEqual(['eraser up: grab it to', 'delete your oldest echo']);
+  });
+
+  it('keeps a single word that is too wide on its own line', () => {
+    expect(wrapText('unbreakable word', 50, measure)).toEqual(['unbreakable', 'word']);
   });
 });
