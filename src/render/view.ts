@@ -24,7 +24,7 @@ export type PadSide = 'left' | 'right';
  * Where everything goes on the stage, in stage pixels. On a 'stage' layout (desktop, tablet) the HUD and
  * timer sit outside the stage in the page header, and cards are placed by the stylesheet.
  */
-export interface Layout {
+export interface Regions {
   kind: 'stage' | 'portrait' | 'landscape';
   hud: Rect | null;
   arena: Rect;
@@ -33,6 +33,11 @@ export interface Layout {
   /** The area cards may cover: everything but the HUD, so mute stays reachable. */
   sheet: Rect | null;
   view: ArenaView;
+}
+
+/** The screen layout: the regions plus the stage size they were worked out for. */
+export interface Layout extends Regions {
+  stage: Size;
 }
 
 export const DEFAULT_PAD_SIDE: PadSide = 'right';
@@ -54,13 +59,13 @@ export function isPhone(viewport: Size, coarsePointer: boolean): boolean {
   return coarsePointer && Math.min(viewport.width, viewport.height) <= PHONE_MAX_SIDE;
 }
 
-export function layout(stage: Size, phone: boolean, padSide: PadSide): Layout {
+export function layout(stage: Size, phone: boolean, padSide: PadSide): Regions {
   if (phone && stage.height > stage.width) return portraitPhone(stage);
   if (phone) return landscapePhone(stage, padSide);
   return { kind: 'stage', hud: null, timer: null, ...fitArena(stage), pad: null, sheet: null };
 }
 
-function portraitPhone(stage: Size): Layout {
+function portraitPhone(stage: Size): Regions {
   const width = stage.width - MARGIN * 2;
   const hud = { x: MARGIN, y: 0, width, height: HUD_H };
   const top = HUD_H + PHONE_GAP;
@@ -75,7 +80,7 @@ function portraitPhone(stage: Size): Layout {
   return { kind: 'portrait', hud, arena, timer, pad, sheet, view: { rotated: true, scale, offsetX: arena.x, offsetY: arena.y } };
 }
 
-function landscapePhone(stage: Size, padSide: PadSide): Layout {
+function landscapePhone(stage: Size, padSide: PadSide): Regions {
   const height = stage.height - MARGIN * 2;
   const maxArenaW = stage.width - MARGIN * 2 - HUD_COL_W - MIN_PAD_SPAN - PHONE_GAP * 2;
   const scale = Math.max(0.01, Math.min(height / WORLD_H, maxArenaW / WORLD_W));

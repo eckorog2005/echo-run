@@ -4,12 +4,12 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The screen layout module owns the `echo-pad-side` key: default right, a chosen side survives a new instance, an unknown stored value falls back to right
-- [ ] Choosing a side on a landscape phone fires on-change with the mirrored layout; refresh with an unchanged size fires nothing; on-change fires once at startup
-- [ ] Tests run in Node with a memory store and a stub measure function, and replace the old pad-side tests, which are deleted with their module
-- [ ] The Renderer receives the layout in `draw` and no longer measures, decides the phone check, holds the pad side, or calls back into the main loop
-- [ ] The existing layout-function tests still pass unchanged
-- [ ] The title card's pad-side toggle, rotation, and resize behave exactly as before on desktop and on a phone-sized touch viewport in both orientations
-- [ ] `npm run lint`, `npm test`, and `npm run build` pass
+- [x] The screen layout module owns the `echo-pad-side` key: default right, a chosen side survives a new instance, an unknown stored value falls back to right
+- [x] Choosing a side on a landscape phone fires on-change with the mirrored layout; refresh with an unchanged size fires nothing; on-change fires once at startup
+- [x] Tests run in Node with a memory store and a stub measure function, and replace the old pad-side tests, which are deleted with their module
+- [x] The Renderer receives the layout in `draw` and no longer measures, decides the phone check, holds the pad side, or calls back into the main loop
+- [x] The existing layout-function tests still pass unchanged
+- [x] The title card's pad-side toggle, rotation, and resize behave exactly as before on desktop and on a phone-sized touch viewport in both orientations
+- [x] `npm run lint`, `npm test`, and `npm run build` pass

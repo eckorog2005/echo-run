@@ -6,8 +6,8 @@ import { Session, type Hud, type Mode, type Screen, type SessionEvent } from './
 import { Input } from './input/input.ts';
 import { Effects } from './render/particles.ts';
 import { Renderer, type PadView } from './render/renderer.ts';
+import { ScreenLayout } from './render/screenLayout.ts';
 import { LOW_TIME_LEFT, toArenaDirection, type Layout, type PadSide, type Rect } from './render/view.ts';
-import { loadPadSide, savePadSide } from './render/padSide.ts';
 import { browserStore } from './storage.ts';
 import { Overlay } from './ui/overlay.ts';
 
@@ -39,7 +39,7 @@ const hudEl = {
 const store = browserStore;
 const session = new Session({ store, today: () => dateKey(), randomSeed: () => (Math.random() * 2 ** 32) >>> 0 });
 const input = new Input(stage);
-const renderer = new Renderer(byId<HTMLCanvasElement>('cv'), stage, loadPadSide(store), applyLayout);
+const renderer = new Renderer(byId<HTMLCanvasElement>('cv'));
 const audio = new Audio(store);
 const fx = new Effects();
 const overlay = new Overlay(overlayEl);
@@ -75,6 +75,22 @@ function applyLayout(next: Layout): void {
   input.joy.confine(next.pad);
 }
 
+const coarsePointer = matchMedia('(pointer: coarse)');
+const screenLayout = new ScreenLayout({
+  store,
+  measure: () => {
+    const r = stage.getBoundingClientRect();
+    return {
+      stage: { width: r.width, height: r.height },
+      viewport: { width: innerWidth, height: innerHeight },
+      coarsePointer: coarsePointer.matches,
+    };
+  },
+  onChange: applyLayout,
+});
+new ResizeObserver(() => screenLayout.refresh()).observe(stage);
+coarsePointer.addEventListener('change', () => screenLayout.refresh());
+
 // ---------- HUD ----------
 let shownHud = '';
 function renderHud(): void {
@@ -109,13 +125,8 @@ renderMute();
 function showTitle(): void {
   session.menu();
   input.joystickEnabled = false;
-  const padSide = renderer.layout.kind === 'stage' ? null : { side: renderer.padSide, choose: choosePadSide };
+  const padSide = screenLayout.layout.kind === 'stage' ? null : { side: screenLayout.padSide, choose: (side: PadSide) => screenLayout.choosePadSide(side) };
   overlay.showTitle(session.titleInfo(), { daily: () => startRun('daily'), endless: () => startRun('endless') }, padSide);
-}
-
-function choosePadSide(side: PadSide): void {
-  savePadSide(store, side);
-  renderer.setPadSide(side);
 }
 
 function startRun(mode: Mode): void {
@@ -190,14 +201,14 @@ function frame(now: number): void {
   last = now;
   while (acc >= TICK) {
     const playing = session.screen === 'play';
-    const events = session.tick(toArenaDirection(input.direction(), renderer.rotated));
+    const events = session.tick(toArenaDirection(input.direction(), screenLayout.layout.view.rotated));
     // Effects only follow live play; the replay is silent, as before.
     if (playing || events.some((e) => e.type === 'card')) handle(events);
     fx.update(TICK);
     acc -= TICK;
   }
   renderHud();
-  renderer.draw(session.scene(), fx, PAD_VIEWS[session.screen], now);
+  renderer.draw(screenLayout.layout, session.scene(), fx, PAD_VIEWS[session.screen], now);
   requestAnimationFrame(frame);
 }
 

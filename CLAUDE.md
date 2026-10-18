@@ -21,7 +21,7 @@ Domain terms are defined in `CONTEXT.md`; use them in code, tests, and issues.
 
 **Seeds.** Daily seed = `hashString('echo-run/<YYYY-MM-DD>')` using the local date; endless mode's seed comes from the `randomSeed` dependency, which `main.ts` implements with `Math.random`, the only place that is allowed. `buildCourse(seed)` precomputes every orb and eraser position, so a seed fully determines the course.
 
-**Persistence.** Everything goes through the `KeyValueStore` interface in `storage.ts`. Keys: `echo-best-endless` (owned by `Session`), `echo-daily:<date>` (`daily.ts`; first attempt only, later same-day runs are practice and not recorded), `echo-muted` (`audio.ts`), and `echo-pad-side` (`render/padSide.ts`; `left` or `right`, default right).
+**Persistence.** Everything goes through the `KeyValueStore` interface in `storage.ts`. Keys: `echo-best-endless` (owned by `Session`), `echo-daily:<date>` (`daily.ts`; first attempt only, later same-day runs are practice and not recorded), `echo-muted` (`audio.ts`), and `echo-pad-side` (`ScreenLayout` in `render/screenLayout.ts`; `left` or `right`, default right).
 
 ## Conventions not covered above
 
