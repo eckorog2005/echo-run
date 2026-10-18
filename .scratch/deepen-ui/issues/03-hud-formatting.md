@@ -4,12 +4,12 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] The HUD gives the round label, seconds-left text, and low-time flag during play and replay, and empty/zero values on the title screen
 - [x] The low-time flag on both HUD and Scene flips exactly at the threshold
 - [x] The Renderer and main loop no longer compare against the threshold or compute seconds
 - [x] The best/today value stays correct after a counted attempt, after returning to the menu, and across a date change at the menu, without reading storage every frame
 - [x] Covered by extended Session tests
-- [ ] The timer bar and orb ring look the same as before on a phone-sized touch viewport
+- [x] The timer bar and orb ring look the same as before on a phone-sized touch viewport
 - [x] `npm run lint`, `npm test`, and `npm run build` pass
