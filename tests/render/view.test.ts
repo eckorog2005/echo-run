@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isPhone, layout, toArenaDirection, type ArenaView, type Rect } from '../../src/render/view.ts';
+import { isPhone, layout, type ArenaView, type Rect } from '../../src/render/view.ts';
 
 const view = (width: number, height: number): ArenaView => layout({ width, height }, false, 'right').view;
 
@@ -175,19 +175,5 @@ describe('isPhone', () => {
     expect(isPhone({ width: 768, height: 1024 }, true)).toBe(false);
     expect(isPhone({ width: 501, height: 900 }, true)).toBe(false);
     expect(isPhone({ width: 390, height: 844 }, false)).toBe(false);
-  });
-});
-
-describe('toArenaDirection', () => {
-  it('leaves steering unchanged when the arena is upright', () => {
-    expect(toArenaDirection({ x: 0.5, y: -1 }, false)).toEqual({ x: 0.5, y: -1 });
-  });
-
-  it('turns screen-up into arena-left when the arena is rotated clockwise', () => {
-    expect(toArenaDirection({ x: 0, y: -1 }, true)).toEqual({ x: -1, y: 0 });
-  });
-
-  it('turns screen-right into arena-up when the arena is rotated clockwise', () => {
-    expect(toArenaDirection({ x: 1, y: 0 }, true)).toEqual({ x: 0, y: -1 });
   });
 });

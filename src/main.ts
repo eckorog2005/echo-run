@@ -1,13 +1,14 @@
 import './style.css';
 import { Audio } from './audio/audio.ts';
-import { ROUND_TICKS, TICK } from './game/constants.ts';
+import { TICK } from './game/constants.ts';
 import { dateKey } from './game/daily.ts';
 import { Session, type Hud, type Mode, type Screen, type SessionEvent } from './game/session.ts';
 import { Input } from './input/input.ts';
+import { Steering } from './input/steering.ts';
 import { Effects } from './render/particles.ts';
 import { Renderer, type PadView } from './render/renderer.ts';
-import { LOW_TIME_LEFT, toArenaDirection, type Layout, type PadSide, type Rect } from './render/view.ts';
-import { loadPadSide, savePadSide } from './render/padSide.ts';
+import { ScreenLayout } from './render/screenLayout.ts';
+import type { Layout, PadSide, Rect } from './render/view.ts';
 import { browserStore } from './storage.ts';
 import { Overlay } from './ui/overlay.ts';
 
@@ -38,8 +39,9 @@ const hudEl = {
 
 const store = browserStore;
 const session = new Session({ store, today: () => dateKey(), randomSeed: () => (Math.random() * 2 ** 32) >>> 0 });
-const input = new Input(stage);
-const renderer = new Renderer(byId<HTMLCanvasElement>('cv'), stage, loadPadSide(store), applyLayout);
+const steering = new Steering();
+new Input(stage, steering);
+const renderer = new Renderer(byId<HTMLCanvasElement>('cv'));
 const audio = new Audio(store);
 const fx = new Effects();
 const overlay = new Overlay(overlayEl);
@@ -71,9 +73,24 @@ function applyLayout(next: Layout): void {
   place(hudEl.header, next.hud);
   place(hudEl.timer, next.timer);
   place(overlayEl, next.sheet);
-  input.joy.cancel();
-  input.joy.confine(next.pad);
+  steering.relayout(next);
 }
+
+const coarsePointer = matchMedia('(pointer: coarse)');
+const screenLayout = new ScreenLayout({
+  store,
+  measure: () => {
+    const r = stage.getBoundingClientRect();
+    return {
+      stage: { width: r.width, height: r.height },
+      viewport: { width: innerWidth, height: innerHeight },
+      coarsePointer: coarsePointer.matches,
+    };
+  },
+  onChange: applyLayout,
+});
+new ResizeObserver(() => screenLayout.refresh()).observe(stage);
+coarsePointer.addEventListener('change', () => screenLayout.refresh());
 
 // ---------- HUD ----------
 let shownHud = '';
@@ -87,12 +104,12 @@ function renderHud(): void {
   hudEl.bestLabel.textContent = h.bestLabel;
   hudEl.best.textContent = h.best;
   hudEl.mode.textContent = h.mode;
-  hudEl.timer.classList.toggle('idle', h.round === null);
+  hudEl.timer.classList.toggle('idle', !h.roundLabel);
   hudEl.timerLabel.textContent = h.timerLabel;
-  hudEl.timerRound.textContent = h.round === null ? '' : `Round ${h.round}`;
-  hudEl.timerSecs.textContent = `${(h.timeLeft * ROUND_TICKS * TICK).toFixed(1)} s`;
+  hudEl.timerRound.textContent = h.roundLabel;
+  hudEl.timerSecs.textContent = h.secondsLeft;
   hudEl.timerFill.style.width = `${h.timeLeft * 100}%`;
-  hudEl.timerFill.classList.toggle('low', h.timeLeft < LOW_TIME_LEFT);
+  hudEl.timerFill.classList.toggle('low', h.lowTime);
 }
 
 function renderMute(): void {
@@ -108,14 +125,8 @@ renderMute();
 // ---------- Screens ----------
 function showTitle(): void {
   session.menu();
-  input.joystickEnabled = false;
-  const padSide = renderer.layout.kind === 'stage' ? null : { side: renderer.padSide, choose: choosePadSide };
+  const padSide = screenLayout.layout.kind === 'stage' ? null : { side: screenLayout.padSide, choose: (side: PadSide) => screenLayout.choosePadSide(side) };
   overlay.showTitle(session.titleInfo(), { daily: () => startRun('daily'), endless: () => startRun('endless') }, padSide);
-}
-
-function choosePadSide(side: PadSide): void {
-  savePadSide(store, side);
-  renderer.setPadSide(side);
 }
 
 function startRun(mode: Mode): void {
@@ -124,7 +135,6 @@ function startRun(mode: Mode): void {
   (document.activeElement as HTMLElement | null)?.blur?.();
   session.start(mode);
   fx.reset();
-  input.joystickEnabled = true;
   overlay.hide();
 }
 
@@ -163,8 +173,6 @@ function handle(events: SessionEvent[]): void {
       fx.burst(ev.at.x, ev.at.y, C.erase, 30, 220);
       audio.erase();
     } else if (ev.type === 'die') {
-      input.joystickEnabled = false;
-      input.joy.cancel();
       fx.burst(ev.at.x, ev.at.y, C.danger, 44, 340);
       fx.burst(ev.at.x, ev.at.y, C.self, 20, 200);
       fx.kick(18);
@@ -176,12 +184,11 @@ function handle(events: SessionEvent[]): void {
 }
 
 // ---------- Loop ----------
-const PAD_VIEWS: Record<Screen, PadView> = {
-  title: { kind: 'steer', joy: input.joy },
-  play: { kind: 'steer', joy: input.joy },
-  dead: null,
-  replay: { kind: 'prompt', label: 'Tap to skip' },
-};
+const REPLAY_PAD: PadView = { kind: 'prompt', label: 'Tap to skip' };
+function padView(screen: Screen): PadView {
+  if (screen === 'dead') return null;
+  return screen === 'replay' ? REPLAY_PAD : { kind: 'steer', stick: steering.stick };
+}
 
 let last = performance.now();
 let acc = 0;
@@ -190,14 +197,14 @@ function frame(now: number): void {
   last = now;
   while (acc >= TICK) {
     const playing = session.screen === 'play';
-    const events = session.tick(toArenaDirection(input.direction(), renderer.rotated));
+    const events = session.tick(steering.direction(playing));
     // Effects only follow live play; the replay is silent, as before.
     if (playing || events.some((e) => e.type === 'card')) handle(events);
     fx.update(TICK);
     acc -= TICK;
   }
   renderHud();
-  renderer.draw(session.scene(), fx, PAD_VIEWS[session.screen], now);
+  renderer.draw(screenLayout.layout, session.scene(), fx, padView(session.screen), now);
   requestAnimationFrame(frame);
 }
 

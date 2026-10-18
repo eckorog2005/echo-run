@@ -13,6 +13,7 @@ export const KILL_SLACK = 5; // collision forgiveness, in world units
 export const ROUND_TICKS = 7 * 60; // time to reach the orb
 export const GRACE_TICKS = 40; // echoes are harmless at the start of each round
 export const EDGE_TICKS = 8; // echoes are harmless at each end of their loop, where they teleport
+export const LOW_TIME_LEFT = 0.3; // fraction of the round left below which the player is low on time
 
 // Steering input is snapped to whole steps of 1/INPUT_SCALE per axis, so a run's input log fits in an Int8Array
 // and replays exactly.

@@ -20,6 +20,10 @@ _Avoid_: Map, layout, level
 The fixed playfield every run shares, the same size on every device, so a Course means the same thing for every player. How it is drawn (scale, orientation) is a display matter and never changes a run.
 _Avoid_: World (the code's name for its coordinates), board, map, level
 
+**Screen layout**:
+Where the HUD, arena, timer, and steering pad sit on the player's screen, worked out from the screen size, whether it is a touch phone, and the pad side. Purely a display matter: it never changes a run.
+_Avoid_: Layout on its own (it reads as the Course)
+
 **Orb**:
 The target of a round. Collecting it scores a point and turns the round's route into an echo.
 _Avoid_: Coin, pickup, target

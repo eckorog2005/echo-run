@@ -11,6 +11,8 @@ export interface Scene {
   eraser: Vec | null;
   /** Fraction of the round timer left, 0..1. */
   timeLeft: number;
+  /** Under LOW_TIME_LEFT of a running round is left; matches Hud.lowTime. */
+  lowTime: boolean;
   killerN: number | null;
   numbered: boolean;
   banner: string | null;

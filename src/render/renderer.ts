@@ -1,28 +1,22 @@
 import { ECHO_R, ERASER_R, ORB_R, PLAYER_R, WORLD_H, WORLD_W } from '../game/constants.ts';
 import type { Scene } from '../game/scene.ts';
-import { JOY_R, type Joystick } from '../input/joystick.ts';
+import type { Stick } from '../input/steering.ts';
 import type { Effects } from './particles.ts';
-import { DEFAULT_PAD_SIDE, LOW_TIME_LEFT, isPhone, layout, type Layout, type PadSide, type Rect } from './view.ts';
+import type { Layout, Rect, Size } from './view.ts';
 
 /** What the steering pad shows: the joystick, a prompt such as "Tap to skip", or nothing. */
-export type PadView = { kind: 'steer'; joy: Joystick } | { kind: 'prompt'; label: string } | null;
+export type PadView = { kind: 'steer'; stick: Stick } | { kind: 'prompt'; label: string } | null;
 
 type Palette = Record<'ink' | 'panel' | 'line' | 'text' | 'muted' | 'self' | 'echo' | 'orb' | 'danger' | 'erase', string>;
 
 export class Renderer {
   private readonly ctx: CanvasRenderingContext2D;
   private readonly C: Palette;
-  private regions: Layout = layout({ width: 0, height: 0 }, false, DEFAULT_PAD_SIDE);
   private cw = 0;
   private ch = 0;
   private dpr = 1;
 
-  constructor(
-    private readonly canvas: HTMLCanvasElement,
-    private readonly stage: HTMLElement,
-    private side: PadSide,
-    private readonly onLayout: (layout: Layout) => void,
-  ) {
+  constructor(private readonly canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Canvas 2D is not available');
     this.ctx = ctx;
@@ -32,44 +26,19 @@ export class Renderer {
       ink: read('ink'), panel: read('panel'), line: read('line'), text: read('text'), muted: read('muted'),
       self: read('self'), echo: read('echo'), orb: read('orb'), danger: read('danger'), erase: read('erase'),
     };
-    new ResizeObserver(() => this.resize()).observe(stage);
-    this.resize();
   }
 
   get colors(): Palette {
     return this.C;
   }
 
-  get rotated(): boolean {
-    return this.regions.view.rotated;
-  }
-
-  get layout(): Layout {
-    return this.regions;
-  }
-
-  get padSide(): PadSide {
-    return this.side;
-  }
-
-  /** Lays the screen out again for the new side. */
-  setPadSide(side: PadSide): void {
-    this.side = side;
-    this.resize();
-  }
-
-  private resize(): void {
-    const r = this.stage.getBoundingClientRect();
+  private fitCanvas({ width, height }: Size): void {
+    if (width === this.cw && height === this.ch) return;
     this.dpr = Math.min(window.devicePixelRatio || 1, 2);
-    this.cw = r.width;
-    this.ch = r.height;
-    this.canvas.width = Math.round(r.width * this.dpr);
-    this.canvas.height = Math.round(r.height * this.dpr);
-    const phone = isPhone({ width: innerWidth, height: innerHeight }, matchMedia('(pointer: coarse)').matches);
-    const next = layout({ width: this.cw, height: this.ch }, phone, this.side);
-    const changed = JSON.stringify(next) !== JSON.stringify(this.regions);
-    this.regions = next;
-    if (changed) this.onLayout(next);
+    this.cw = width;
+    this.ch = height;
+    this.canvas.width = Math.round(width * this.dpr);
+    this.canvas.height = Math.round(height * this.dpr);
   }
 
   private circle(x: number, y: number, r: number): void {
@@ -88,17 +57,18 @@ export class Renderer {
     ctx.stroke();
   }
 
-  draw(scene: Scene, fx: Effects, padView: PadView, now: number): void {
+  draw(layout: Layout, scene: Scene, fx: Effects, padView: PadView, now: number): void {
+    this.fitCanvas(layout.stage);
     const { ctx, C } = this;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.globalAlpha = 1;
-    const { pad } = this.regions;
+    const { pad } = layout;
     ctx.fillStyle = pad ? C.ink : C.panel;
     ctx.fillRect(0, 0, this.cw, this.ch);
 
     const sh = fx.offset();
     ctx.save();
-    const { rotated, scale, offsetX, offsetY } = this.regions.view;
+    const { rotated, scale, offsetX, offsetY } = layout.view;
     if (rotated) {
       ctx.translate(offsetX + WORLD_H * scale + sh.x, offsetY + sh.y);
       ctx.rotate(Math.PI / 2);
@@ -171,7 +141,7 @@ export class Renderer {
       ctx.globalAlpha = 1;
       this.circle(x, y, ORB_R * pulse);
       ctx.fill();
-      ctx.strokeStyle = scene.timeLeft < LOW_TIME_LEFT ? C.danger : C.orb;
+      ctx.strokeStyle = scene.lowTime ? C.danger : C.orb;
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.arc(x, y, ORB_R + 9, -Math.PI / 2, -Math.PI / 2 + scene.timeLeft * Math.PI * 2);
@@ -248,17 +218,17 @@ export class Renderer {
     }
     ctx.restore();
 
-    const joy = padView?.kind === 'steer' ? padView.joy : null;
+    const stick = padView?.kind === 'steer' ? padView.stick : null;
     if (pad) this.drawPad(pad, padView);
-    else if (joy?.active) {
+    else if (stick?.active) {
       ctx.strokeStyle = C.muted;
       ctx.globalAlpha = 0.5;
       ctx.lineWidth = 1.5;
-      this.circle(joy.ax, joy.ay, JOY_R);
+      this.circle(stick.anchor.x, stick.anchor.y, stick.radius);
       ctx.stroke();
       ctx.fillStyle = C.muted;
       ctx.globalAlpha = 0.6;
-      this.circle(joy.x, joy.y, 12);
+      this.circle(stick.knob.x, stick.knob.y, 12);
       ctx.fill();
       ctx.globalAlpha = 1;
     }
@@ -284,8 +254,8 @@ export class Renderer {
       ctx.fillText(view.label.toUpperCase(), cx, pad.y + pad.height / 2);
       return;
     }
-    const { joy } = view;
-    const ring = JOY_R + 14;
+    const { anchor, knob, active, radius } = view.stick;
+    const ring = radius + 14;
     const labelY = pad.y + pad.height - 12;
     if (labelY - 10 > pad.y + pad.height / 2 + ring) {
       ctx.font = '600 9px "IBM Plex Mono", monospace';
@@ -296,14 +266,12 @@ export class Renderer {
     ctx.fillStyle = C.ink;
     ctx.strokeStyle = C.line;
     ctx.lineWidth = 2;
-    this.circle(joy.ax, joy.ay, ring);
+    this.circle(anchor.x, anchor.y, ring);
     ctx.fill();
     ctx.stroke();
-    const dx = joy.x - joy.ax, dy = joy.y - joy.ay;
-    const k = Math.min(1, JOY_R / (Math.hypot(dx, dy) || 1));
     ctx.fillStyle = C.self;
-    ctx.globalAlpha = joy.active ? 1 : 0.7;
-    this.circle(joy.ax + dx * k, joy.ay + dy * k, 20);
+    ctx.globalAlpha = active ? 1 : 0.7;
+    this.circle(knob.x, knob.y, 20);
     ctx.fill();
     ctx.globalAlpha = 1;
   }
