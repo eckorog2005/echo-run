@@ -1,11 +1,11 @@
 import { ECHO_R, ERASER_R, ORB_R, PLAYER_R, WORLD_H, WORLD_W } from '../game/constants.ts';
 import type { Scene } from '../game/scene.ts';
-import { JOY_R, type Joystick } from '../input/joystick.ts';
+import type { Stick } from '../input/steering.ts';
 import type { Effects } from './particles.ts';
 import { LOW_TIME_LEFT, type Layout, type Rect, type Size } from './view.ts';
 
 /** What the steering pad shows: the joystick, a prompt such as "Tap to skip", or nothing. */
-export type PadView = { kind: 'steer'; joy: Joystick } | { kind: 'prompt'; label: string } | null;
+export type PadView = { kind: 'steer'; stick: Stick } | { kind: 'prompt'; label: string } | null;
 
 type Palette = Record<'ink' | 'panel' | 'line' | 'text' | 'muted' | 'self' | 'echo' | 'orb' | 'danger' | 'erase', string>;
 
@@ -218,17 +218,17 @@ export class Renderer {
     }
     ctx.restore();
 
-    const joy = padView?.kind === 'steer' ? padView.joy : null;
+    const stick = padView?.kind === 'steer' ? padView.stick : null;
     if (pad) this.drawPad(pad, padView);
-    else if (joy?.active) {
+    else if (stick?.active) {
       ctx.strokeStyle = C.muted;
       ctx.globalAlpha = 0.5;
       ctx.lineWidth = 1.5;
-      this.circle(joy.ax, joy.ay, JOY_R);
+      this.circle(stick.anchor.x, stick.anchor.y, stick.radius);
       ctx.stroke();
       ctx.fillStyle = C.muted;
       ctx.globalAlpha = 0.6;
-      this.circle(joy.x, joy.y, 12);
+      this.circle(stick.knob.x, stick.knob.y, 12);
       ctx.fill();
       ctx.globalAlpha = 1;
     }
@@ -254,8 +254,8 @@ export class Renderer {
       ctx.fillText(view.label.toUpperCase(), cx, pad.y + pad.height / 2);
       return;
     }
-    const { joy } = view;
-    const ring = JOY_R + 14;
+    const { anchor, knob, active, radius } = view.stick;
+    const ring = radius + 14;
     const labelY = pad.y + pad.height - 12;
     if (labelY - 10 > pad.y + pad.height / 2 + ring) {
       ctx.font = '600 9px "IBM Plex Mono", monospace';
@@ -266,14 +266,12 @@ export class Renderer {
     ctx.fillStyle = C.ink;
     ctx.strokeStyle = C.line;
     ctx.lineWidth = 2;
-    this.circle(joy.ax, joy.ay, ring);
+    this.circle(anchor.x, anchor.y, ring);
     ctx.fill();
     ctx.stroke();
-    const dx = joy.x - joy.ax, dy = joy.y - joy.ay;
-    const k = Math.min(1, JOY_R / (Math.hypot(dx, dy) || 1));
     ctx.fillStyle = C.self;
-    ctx.globalAlpha = joy.active ? 1 : 0.7;
-    this.circle(joy.ax + dx * k, joy.ay + dy * k, 20);
+    ctx.globalAlpha = active ? 1 : 0.7;
+    this.circle(knob.x, knob.y, 20);
     ctx.fill();
     ctx.globalAlpha = 1;
   }

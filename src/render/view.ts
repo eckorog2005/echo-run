@@ -1,5 +1,4 @@
 import { WORLD_H, WORLD_W } from '../game/constants.ts';
-import type { Vec } from '../game/model.ts';
 
 export interface ArenaView {
   rotated: boolean;
@@ -114,9 +113,4 @@ function fitArena(stage: Size): { arena: Rect; view: ArenaView } {
   const x = (stage.width - width) / 2;
   const y = (stage.height - height) / 2;
   return { arena: { x, y, width, height }, view: { rotated, scale, offsetX: x, offsetY: y } };
-}
-
-/** Maps a screen-space steering direction into arena space. */
-export function toArenaDirection(screen: Vec, rotated: boolean): Vec {
-  return rotated ? { x: screen.y, y: 0 - screen.x } : screen;
 }
