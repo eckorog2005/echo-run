@@ -72,7 +72,7 @@ describe('Steering', () => {
     s.relayout(portraitPhone);
     expect(s.direction(true)).toEqual({ x: 0, y: 0 });
     const rest = padCentre(portraitPhone);
-    expect(s.stick).toMatchObject({ active: false, anchor: rest, knob: rest });
+    expect(s.stick).toMatchObject({ active: false, base: rest, knob: rest });
 
     s.move(1, { x: rest.x + 30, y: rest.y });
     expect(s.direction(true)).toEqual({ x: 0, y: 0 });
@@ -173,9 +173,9 @@ describe('Steering', () => {
     s.press(1, c);
     for (const p of [{ x: c.x + 300, y: c.y + 10 }, { x: c.x - 80, y: c.y - 200 }, { x: c.x + 5, y: c.y }]) {
       s.move(1, p);
-      const { anchor, knob, radius, active } = s.stick;
+      const { base, knob, radius, active } = s.stick;
       expect(active).toBe(true);
-      expect(Math.hypot(knob.x - anchor.x, knob.y - anchor.y)).toBeLessThanOrEqual(radius + 1e-9);
+      expect(Math.hypot(knob.x - base.x, knob.y - base.y)).toBeLessThanOrEqual(radius + 1e-9);
     }
   });
 });

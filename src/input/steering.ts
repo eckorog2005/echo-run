@@ -9,9 +9,9 @@ const KEYMAP: Record<string, Key> = {
   ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd',
 };
 
-/** The joystick as drawn: the knob is already clamped to `radius` from the anchor. */
+/** The joystick as drawn: the knob is already clamped to `radius` from the base. */
 export interface Stick {
-  readonly anchor: Vec;
+  readonly base: Vec;
   readonly knob: Vec;
   readonly active: boolean;
   readonly radius: number;
@@ -25,10 +25,10 @@ export class Steering {
   private rotated = false;
 
   get stick(): Stick {
-    const { ax, ay, x, y, active } = this.joy;
-    const dx = x - ax, dy = y - ay;
+    const { bx, by, x, y, active } = this.joy;
+    const dx = x - bx, dy = y - by;
     const k = Math.min(1, JOY_R / (Math.hypot(dx, dy) || 1));
-    return { anchor: { x: ax, y: ay }, knob: { x: ax + dx * k, y: ay + dy * k }, active, radius: JOY_R };
+    return { base: { x: bx, y: by }, knob: { x: bx + dx * k, y: by + dy * k }, active, radius: JOY_R };
   }
 
   press(id: number, p: Vec): boolean {

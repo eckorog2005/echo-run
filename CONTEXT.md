@@ -52,6 +52,10 @@ _Avoid_: Recording, ghost data, demo
 The area beside the arena on a touch phone where the player steers. Touches inside it steer; touches on the arena never do.
 _Avoid_: Thumb pad, control pad, joystick (the stick drawn inside the pad)
 
+**Joystick**:
+The stick that appears where the player's thumb lands in the steering pad. Its **base** stays where the thumb landed until the thumb lifts; its **knob** follows the thumb up to the rim, and dragging past the rim steers at full speed in that direction.
+_Avoid_: Anchor, centre (for the base), stick on its own
+
 **Replay**:
 A finished run played back by re-simulating it from its seed and input log.
 _Avoid_: Playback, rewind
