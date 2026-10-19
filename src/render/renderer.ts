@@ -233,7 +233,7 @@ export class Renderer {
       ctx.strokeStyle = C.muted;
       ctx.globalAlpha = 0.5;
       ctx.lineWidth = 1.5;
-      this.circle(stick.anchor.x, stick.anchor.y, stick.radius);
+      this.circle(stick.base.x, stick.base.y, stick.radius);
       ctx.stroke();
       ctx.fillStyle = C.muted;
       ctx.globalAlpha = 0.6;
@@ -263,7 +263,7 @@ export class Renderer {
       ctx.fillText(view.label.toUpperCase(), cx, pad.y + pad.height / 2);
       return;
     }
-    const { anchor, knob, active, radius } = view.stick;
+    const { base, knob, active, radius } = view.stick;
     const ring = radius + 14;
     const labelY = pad.y + pad.height - 12;
     if (labelY - 10 > pad.y + pad.height / 2 + ring) {
@@ -275,7 +275,7 @@ export class Renderer {
     ctx.fillStyle = C.ink;
     ctx.strokeStyle = C.line;
     ctx.lineWidth = 2;
-    this.circle(anchor.x, anchor.y, ring);
+    this.circle(base.x, base.y, ring);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = C.self;

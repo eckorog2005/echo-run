@@ -4,12 +4,12 @@ import type { Rect } from '../render/view.ts';
 export const JOY_R = 38;
 const DEAD_ZONE = 5;
 
-/** A floating drag joystick in screen space: press sets the anchor, dragging steers. */
+/** A floating drag joystick in screen space: press sets the base, dragging steers. */
 export class Joystick {
   active = false;
   private id: number | null = null;
-  ax = 0;
-  ay = 0;
+  bx = 0;
+  by = 0;
   x = 0;
   y = 0;
   private zone: Rect | null = null;
@@ -25,8 +25,8 @@ export class Joystick {
     if (this.active || !this.inZone(p)) return false;
     this.active = true;
     this.id = id;
-    this.ax = this.x = p.x;
-    this.ay = this.y = p.y;
+    this.bx = this.x = p.x;
+    this.by = this.y = p.y;
     return true;
   }
 
@@ -34,12 +34,6 @@ export class Joystick {
     if (!this.active || id !== this.id) return;
     this.x = p.x;
     this.y = p.y;
-    // Drag the anchor along so reversing direction is instant.
-    const { dx, dy, len } = this.offset();
-    if (len > JOY_R) {
-      this.ax = this.x - (dx / len) * JOY_R;
-      this.ay = this.y - (dy / len) * JOY_R;
-    }
   }
 
   release(id: number): void {
@@ -59,7 +53,7 @@ export class Joystick {
   }
 
   private offset(): { dx: number; dy: number; len: number } {
-    const dx = this.x - this.ax, dy = this.y - this.ay;
+    const dx = this.x - this.bx, dy = this.y - this.by;
     return { dx, dy, len: Math.hypot(dx, dy) };
   }
 
@@ -70,7 +64,7 @@ export class Joystick {
 
   private settle(): void {
     if (!this.zone) return;
-    this.ax = this.x = this.zone.x + this.zone.width / 2;
-    this.ay = this.y = this.zone.y + this.zone.height / 2;
+    this.bx = this.x = this.zone.x + this.zone.width / 2;
+    this.by = this.y = this.zone.y + this.zone.height / 2;
   }
 }
