@@ -1,32 +1,20 @@
 import { ECHO_R, ERASER_R, ORB_R, PLAYER_R, WORLD_H, WORLD_W } from '../game/constants.ts';
 import type { PadContent, Scene } from '../game/scene.ts';
 import type { Stick } from '../input/steering.ts';
+import type { Palette } from './palette.ts';
 import type { Effects } from './particles.ts';
 import { wrapText, type Layout, type Rect, type Size } from './view.ts';
 
-type Palette = Record<'ink' | 'panel' | 'line' | 'text' | 'muted' | 'self' | 'echo' | 'orb' | 'danger' | 'erase', string>;
-
 export class Renderer {
   private readonly ctx: CanvasRenderingContext2D;
-  private readonly C: Palette;
   private cw = 0;
   private ch = 0;
   private dpr = 1;
 
-  constructor(private readonly canvas: HTMLCanvasElement) {
+  constructor(private readonly canvas: HTMLCanvasElement, private readonly C: Palette) {
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Canvas 2D is not available');
     this.ctx = ctx;
-    const css = getComputedStyle(document.documentElement);
-    const read = (k: string): string => css.getPropertyValue(`--${k}`).trim();
-    this.C = {
-      ink: read('ink'), panel: read('panel'), line: read('line'), text: read('text'), muted: read('muted'),
-      self: read('self'), echo: read('echo'), orb: read('orb'), danger: read('danger'), erase: read('erase'),
-    };
-  }
-
-  get colors(): Palette {
-    return this.C;
   }
 
   private fitCanvas({ width, height }: Size): void {

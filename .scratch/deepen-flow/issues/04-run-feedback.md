@@ -6,7 +6,7 @@
 
 **Status:** ready-for-agent
 
-- [ ] The main loop no longer reads the palette or sets Effects' fields
-- [ ] Effects tested in Node: a death shakes, reduce-motion stops the shake, a collect flashes, particles fade
+- [x] The main loop no longer reads the palette or sets Effects' fields
+- [x] Effects tested in Node: a death shakes, reduce-motion stops the shake, a collect flashes, particles fade
 - [ ] Bursts, flash, shake, and sounds look and sound as before
-- [ ] `npm run lint`, `npm test`, and `npm run build` pass
+- [x] `npm run lint`, `npm test`, and `npm run build` pass
