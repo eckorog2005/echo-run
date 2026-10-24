@@ -70,6 +70,10 @@ _Avoid_: Playback, rewind
 The player's visit from the title screen through any number of runs, death cards, and replays.
 _Avoid_: Game, app state
 
+**Title card**:
+The card on the title screen: how to play, today's daily status, and the buttons that start a run.
+_Avoid_: Intro menu, start screen, intro box
+
 **Death card**:
 The summary shown shortly after a run ends: how it ended, the score, and its outcome.
 _Avoid_: Game over screen, results screen
