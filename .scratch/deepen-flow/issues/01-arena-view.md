@@ -4,11 +4,11 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] One arena-to-stage transform; everything else is derived from it
 - [x] The Renderer no longer branches on `rotated`, and Steering no longer stores it
 - [x] Tested in Node: round trip, corners on the arena rect, drawn direction maps to arena direction (upright and rotated), zero stays `+0`, upright text turn, banner box
 - [x] Steering tests unchanged and passing
-- [ ] Drawing, steering, echo numbers, and the banner look and behave as before on desktop and on a phone-sized touch viewport in both orientations
+- [x] Drawing, steering, echo numbers, and the banner look and behave as before on desktop and on a phone-sized touch viewport in both orientations
 - [x] `npm run lint`, `npm test`, and `npm run build` pass

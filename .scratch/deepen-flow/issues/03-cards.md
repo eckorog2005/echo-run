@@ -4,9 +4,9 @@
 
 **Blocked by:** 02 (Screen flow rules in the Session)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] Card actions are typed; a misspelled action fails `npm run build`
 - [x] Tested in Node: each Outcome badge, each death cause headline, erased and best notes, buttons per card, numbers matching the constants
-- [ ] Title and death cards look and behave as before
+- [x] Title and death cards look and behave as before
 - [x] `npm run lint`, `npm test`, and `npm run build` pass

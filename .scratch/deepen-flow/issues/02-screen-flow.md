@@ -4,11 +4,11 @@
 
 **Blocked by:** 01 (Arena view)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] Confirm and skip tested through the Session on every screen
 - [x] The title main action is Daily run before today's counted attempt and Endless after, tested through the Session
 - [x] The Scene's pad content is tested per screen; the Renderer reads it
 - [x] A replay emits no `collect`, `erase`, or `die`, tested; the main loop filter is gone
-- [ ] Keys, taps, the pad prompt, and the replay behave as before on desktop and a phone-sized touch viewport
+- [x] Keys, taps, the pad prompt, and the replay behave as before on desktop and a phone-sized touch viewport
 - [x] `npm run lint`, `npm test`, and `npm run build` pass
