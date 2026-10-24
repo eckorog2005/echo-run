@@ -2,11 +2,11 @@ import './style.css';
 import { Audio } from './audio/audio.ts';
 import { TICK } from './game/constants.ts';
 import { dateKey } from './game/daily.ts';
-import { Session, type Hud, type Mode, type Screen, type SessionEvent } from './game/session.ts';
+import { Session, type Hud, type Mode, type Press, type SessionEvent } from './game/session.ts';
 import { Input } from './input/input.ts';
 import { Steering } from './input/steering.ts';
 import { Effects } from './render/particles.ts';
-import { Renderer, type PadView } from './render/renderer.ts';
+import { Renderer } from './render/renderer.ts';
 import { ScreenLayout } from './render/screenLayout.ts';
 import type { Layout, PadSide, Rect } from './render/view.ts';
 import { browserStore } from './storage.ts';
@@ -145,20 +145,23 @@ function startReplay(): void {
 }
 
 // ---------- Input that isn't steering ----------
+function press(kind: Press): boolean {
+  const result = session.press(kind);
+  if (result && result !== 'skipped') startRun(result.start);
+  return result !== null;
+}
+
+const PRESS_KEYS: Record<string, Press> = { Space: 'confirm', Enter: 'confirm', Escape: 'skip' };
 window.addEventListener('keydown', (e) => {
-  if (e.code !== 'Space' && e.code !== 'Enter' && e.code !== 'Escape') return;
-  if ((e.target as HTMLElement | null)?.tagName === 'BUTTON' && e.code !== 'Escape') return;
-  if (session.screen === 'replay') {
-    e.preventDefault();
-    session.skipReplay();
-  } else if (overlay.visible && e.code !== 'Escape') {
-    e.preventDefault();
-    overlay.activatePrimary();
-  }
+  const kind = PRESS_KEYS[e.code];
+  if (!kind) return;
+  // A focused button already handles its own Space and Enter.
+  if (kind === 'confirm' && (e.target as HTMLElement | null)?.tagName === 'BUTTON') return;
+  if (press(kind)) e.preventDefault();
 });
 stage.addEventListener('pointerdown', () => {
   audio.unlock();
-  if (session.screen === 'replay') session.skipReplay();
+  press('skip');
 });
 
 // ---------- Session events ----------
@@ -184,12 +187,6 @@ function handle(events: SessionEvent[]): void {
 }
 
 // ---------- Loop ----------
-const REPLAY_PAD: PadView = { kind: 'prompt', label: 'Tap to skip' };
-function padView(screen: Screen): PadView {
-  if (screen === 'dead') return null;
-  return screen === 'replay' ? REPLAY_PAD : { kind: 'steer', stick: steering.stick };
-}
-
 let last = performance.now();
 let acc = 0;
 function frame(now: number): void {
@@ -197,14 +194,12 @@ function frame(now: number): void {
   last = now;
   while (acc >= TICK) {
     const playing = session.screen === 'play';
-    const events = session.tick(steering.direction(playing));
-    // Effects only follow live play; the replay is silent, as before.
-    if (playing || events.some((e) => e.type === 'card')) handle(events);
+    handle(session.tick(steering.direction(playing)));
     fx.update(TICK);
     acc -= TICK;
   }
   renderHud();
-  renderer.draw(screenLayout.layout, session.scene(), fx, padView(session.screen), now);
+  renderer.draw(screenLayout.layout, session.scene(), fx, steering.stick, now);
   requestAnimationFrame(frame);
 }
 

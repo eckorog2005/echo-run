@@ -1,5 +1,8 @@
 import type { Echo, Vec } from './model.ts';
 
+/** What the steering pad shows: the joystick, a prompt such as "tap to skip", or nothing. */
+export type PadContent = { kind: 'steer' } | { kind: 'prompt'; label: string } | null;
+
 /** Everything the renderer needs for one frame; built by the Session from live play, the replay, or the title demo. */
 export interface Scene {
   echoes: readonly Echo[];
@@ -17,4 +20,5 @@ export interface Scene {
   numbered: boolean;
   banner: string | null;
   bannerAlpha: number;
+  pad: PadContent;
 }

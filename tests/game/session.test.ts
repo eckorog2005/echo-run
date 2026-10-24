@@ -277,3 +277,73 @@ describe('Session', () => {
     expect(s.hud().timerLabel).toBe('Round 1 · Daily · practice');
   });
 });
+
+describe('Session presses', () => {
+  it('starts a Daily run from the title until today\'s counted attempt is done, and Endless after', () => {
+    const s = session();
+    expect(s.press('confirm')).toEqual({ start: 'daily' });
+    s.start('daily');
+    runToCard(s);
+    s.menu();
+    expect(s.press('confirm')).toEqual({ start: 'endless' });
+  });
+
+  it('runs again in the same mode from the death card, but only once the card is shown', () => {
+    const s = session();
+    s.start('endless');
+    tickUntil(s, 'die');
+    expect(s.press('confirm')).toBeNull();
+    tickUntil(s, 'card');
+    expect(s.press('confirm')).toEqual({ start: 'endless' });
+  });
+
+  it('does nothing on a skip outside the replay, or on any press during play', () => {
+    const s = session();
+    expect(s.press('skip')).toBeNull();
+    s.start('endless');
+    expect(s.press('confirm')).toBeNull();
+    expect(s.press('skip')).toBeNull();
+    runToCard(s);
+    expect(s.press('skip')).toBeNull();
+    expect(s.screen).toBe('dead');
+  });
+
+  it.each(['confirm', 'skip'] as const)('skips the replay on a %s press and brings the death card back', (kind) => {
+    const s = session();
+    s.start('endless');
+    const result = runToCard(s);
+    s.watchReplay();
+    s.tick(STILL);
+    expect(s.press(kind)).toBe('skipped');
+    expect(s.screen).toBe('dead');
+    expect(s.tick(STILL)).toEqual([{ type: 'card', result }]);
+  });
+});
+
+describe('Session pad content', () => {
+  it('shows the joystick on the title and during play, nothing on the death screen, and a skip prompt in the replay', () => {
+    const s = session();
+    expect(s.scene().pad).toEqual({ kind: 'steer' });
+    s.start('endless');
+    expect(s.scene().pad).toEqual({ kind: 'steer' });
+    runToCard(s);
+    expect(s.scene().pad).toBeNull();
+    s.watchReplay();
+    s.tick(STILL);
+    expect(s.scene().pad).toEqual({ kind: 'prompt', label: 'tap to skip' });
+    expect(s.scene().banner).toMatch(/· tap to skip$/);
+  });
+});
+
+describe('Session replay', () => {
+  it('stays silent: a replay of a run that collected orbs emits only the death card', () => {
+    const s = session();
+    s.start('endless');
+    expect(runToCard(s, towardOrb).score).toBeGreaterThan(0);
+    s.watchReplay();
+    const types = new Set<string>();
+    for (let i = 0; i < 20000 && s.screen === 'replay'; i++) for (const e of s.tick(STILL)) types.add(e.type);
+    for (let i = 0; i < 5; i++) for (const e of s.tick(STILL)) types.add(e.type);
+    expect([...types]).toEqual(['card']);
+  });
+});

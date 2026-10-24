@@ -25,29 +25,16 @@ function padSideToggle(side: PadSide): string {
 
 /** The card shown over the arena for the title, death, and result screens. */
 export class Overlay {
-  private primary: (() => void) | null = null;
-
   constructor(private readonly el: HTMLElement) {}
-
-  get visible(): boolean {
-    return !this.el.hidden;
-  }
-
-  /** Runs the card's main button (Space/Enter shortcut). */
-  activatePrimary(): void {
-    this.primary?.();
-  }
 
   hide(): void {
     this.el.hidden = true;
-    this.primary = null;
   }
 
-  private show(html: string, actions: Actions, primary: string, kind: 'title' | 'death'): void {
+  private show(html: string, actions: Actions, kind: 'title' | 'death'): void {
     this.el.innerHTML = `<div class="card ${kind}">${html}</div>`;
     this.el.hidden = false;
     this.el.scrollTop = 0;
-    this.primary = actions[primary] ?? null;
     this.el.querySelectorAll<HTMLButtonElement>('[data-action]').forEach((btn) => {
       const name = btn.dataset.action ?? '';
       btn.addEventListener('click', name === 'copy' ? () => this.copy(btn) : () => actions[name]?.());
@@ -99,7 +86,6 @@ export class Overlay {
         <span class="hint">or press <kbd>Space</kbd></span>
       </div>`,
       actions,
-      played ? 'endless' : 'daily',
       'title',
     );
     if (padSide) this.bindPadSide(padSide.choose);
@@ -145,7 +131,6 @@ export class Overlay {
       </div>
       <span class="hint"><kbd>Space</kbd> runs again</span>`,
       actions,
-      'again',
       'death',
     );
   }
