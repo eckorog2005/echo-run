@@ -1,11 +1,8 @@
 import { ECHO_R, ERASER_R, ORB_R, PLAYER_R, WORLD_H, WORLD_W } from '../game/constants.ts';
-import type { Scene } from '../game/scene.ts';
+import type { PadContent, Scene } from '../game/scene.ts';
 import type { Stick } from '../input/steering.ts';
 import type { Effects } from './particles.ts';
 import { wrapText, type Layout, type Rect, type Size } from './view.ts';
-
-/** What the steering pad shows: the joystick, a prompt such as "Tap to skip", or nothing. */
-export type PadView = { kind: 'steer'; stick: Stick } | { kind: 'prompt'; label: string } | null;
 
 type Palette = Record<'ink' | 'panel' | 'line' | 'text' | 'muted' | 'self' | 'echo' | 'orb' | 'danger' | 'erase', string>;
 
@@ -57,7 +54,8 @@ export class Renderer {
     ctx.stroke();
   }
 
-  draw(layout: Layout, scene: Scene, fx: Effects, padView: PadView, now: number): void {
+  /** Draws one frame; `stick` is shown only where the Scene's pad content says to steer. */
+  draw(layout: Layout, scene: Scene, fx: Effects, stick: Stick, now: number): void {
     this.fitCanvas(layout.stage);
     const { ctx, C } = this;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
@@ -223,9 +221,8 @@ export class Renderer {
       ctx.globalAlpha = 1;
     }
 
-    const stick = padView?.kind === 'steer' ? padView.stick : null;
-    if (pad) this.drawPad(pad, padView);
-    else if (stick?.active) {
+    if (pad) this.drawPad(pad, scene.pad, stick);
+    else if (scene.pad?.kind === 'steer' && stick.active) {
       ctx.strokeStyle = C.muted;
       ctx.globalAlpha = 0.5;
       ctx.lineWidth = 1.5;
@@ -239,7 +236,7 @@ export class Renderer {
     }
   }
 
-  private drawPad(pad: Rect, view: PadView): void {
+  private drawPad(pad: Rect, content: PadContent, stick: Stick): void {
     const { ctx, C } = this;
     ctx.fillStyle = C.panel;
     ctx.strokeStyle = C.line;
@@ -248,18 +245,18 @@ export class Renderer {
     ctx.roundRect(pad.x + 0.5, pad.y + 0.5, pad.width - 1, pad.height - 1, 20);
     ctx.fill();
     ctx.stroke();
-    if (!view) return;
+    if (!content) return;
 
     const cx = pad.x + pad.width / 2;
     ctx.fillStyle = C.muted;
     ctx.textAlign = 'center';
-    if (view.kind === 'prompt') {
+    if (content.kind === 'prompt') {
       ctx.font = '600 12px "IBM Plex Mono", monospace';
       ctx.textBaseline = 'middle';
-      ctx.fillText(view.label.toUpperCase(), cx, pad.y + pad.height / 2);
+      ctx.fillText(content.label.toUpperCase(), cx, pad.y + pad.height / 2);
       return;
     }
-    const { base, knob, active, radius } = view.stick;
+    const { base, knob, active, radius } = stick;
     const ring = radius + 14;
     const labelY = pad.y + pad.height - 12;
     if (labelY - 10 > pad.y + pad.height / 2 + ring) {

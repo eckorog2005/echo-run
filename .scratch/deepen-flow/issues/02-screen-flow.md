@@ -6,9 +6,9 @@
 
 **Status:** ready-for-agent
 
-- [ ] Confirm and skip tested through the Session on every screen
-- [ ] The title main action is Daily run before today's counted attempt and Endless after, tested through the Session
-- [ ] The Scene's pad content is tested per screen; the Renderer reads it
-- [ ] A replay emits no `collect`, `erase`, or `die`, tested; the main loop filter is gone
+- [x] Confirm and skip tested through the Session on every screen
+- [x] The title main action is Daily run before today's counted attempt and Endless after, tested through the Session
+- [x] The Scene's pad content is tested per screen; the Renderer reads it
+- [x] A replay emits no `collect`, `erase`, or `die`, tested; the main loop filter is gone
 - [ ] Keys, taps, the pad prompt, and the replay behave as before on desktop and a phone-sized touch viewport
-- [ ] `npm run lint`, `npm test`, and `npm run build` pass
+- [x] `npm run lint`, `npm test`, and `npm run build` pass

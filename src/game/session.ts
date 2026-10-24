@@ -12,7 +12,7 @@ import {
 import { dailySeed, loadDaily, recordDaily, type DailyRecord } from './daily.ts';
 import type { DeathCause, Echo, GameState, StepEvent, Vec } from './model.ts';
 import { Replay } from './replay.ts';
-import type { Scene } from './scene.ts';
+import type { PadContent, Scene } from './scene.ts';
 import { shareText } from './share.ts';
 import { advanceEchoes, createGame, idle, step } from './sim.ts';
 import type { KeyValueStore } from '../storage.ts';
@@ -39,6 +39,12 @@ export interface RunResult {
 }
 
 export type SessionEvent = StepEvent | { type: 'card'; result: RunResult };
+
+/** Confirm is Space or Enter; skip is Escape or a tap on the stage. */
+export type Press = 'confirm' | 'skip';
+
+/** What a press did: skipped the replay, asks for a run to start, or nothing. */
+export type PressResult = 'skipped' | { start: Mode } | null;
 
 export interface Hud {
   score: number;
@@ -74,6 +80,9 @@ export interface SessionDeps {
 }
 
 const BEST_KEY = 'echo-best-endless';
+const SKIP_PROMPT = 'tap to skip';
+const STEER: PadContent = { kind: 'steer' };
+const SKIP_PAD: PadContent = { kind: 'prompt', label: SKIP_PROMPT };
 const TRAIL_LENGTH = 14;
 const EMPTY: number[] = [];
 
@@ -165,6 +174,21 @@ export class Session {
     this.game = null;
     this.replay = null;
     this.refreshDaily();
+  }
+
+  /**
+   * Any press skips the replay. Confirm runs the shown card's main button: Daily run on the title until
+   * today's counted attempt is done, Endless after, and Run again on the death card.
+   */
+  press(kind: Press): PressResult {
+    if (this._screen === 'replay') {
+      this.skipReplay();
+      return 'skipped';
+    }
+    if (kind !== 'confirm') return null;
+    if (this._screen === 'title') return { start: this.daily ? 'endless' : 'daily' };
+    if (this._screen === 'dead' && this.result && this.cardIn === null) return { start: this.mode };
+    return null;
   }
 
   private refreshDaily(): void {
@@ -264,8 +288,9 @@ export class Session {
       const r = this.replay.state;
       return {
         ...this.runScene(r, true),
-        banner: `Replay · round ${this.replay.round + 1} of ${this.replay.rounds} · tap to skip`,
+        banner: `Replay · round ${this.replay.round + 1} of ${this.replay.rounds} · ${SKIP_PROMPT}`,
         bannerAlpha: 1,
+        pad: SKIP_PAD,
       };
     }
     if (this.game && (this._screen === 'play' || this._screen === 'dead')) {
@@ -276,16 +301,17 @@ export class Session {
         ...this.runScene(g, playing),
         banner: g.eraser ? 'eraser up: grab it to delete your oldest echo' : `echo #${g.echoes.length} joins`,
         bannerAlpha: playing && g.echoes.length ? Math.max(0, 1 - g.roundTick / fadeTicks) : 0,
+        pad: playing ? STEER : null,
       };
     }
     return {
       echoes: this.demo, route: EMPTY, routeLen: 0, player: null, trail: [], orb: null, eraser: null,
-      timeLeft: 0, lowTime: false, killerN: null, numbered: false, banner: null, bannerAlpha: 0,
+      timeLeft: 0, lowTime: false, killerN: null, numbered: false, banner: null, bannerAlpha: 0, pad: STEER,
     };
   }
 
   /** The parts of a play or replay frame that come straight from a GameState. */
-  private runScene(g: GameState, showPlayer: boolean): Omit<Scene, 'banner' | 'bannerAlpha'> {
+  private runScene(g: GameState, showPlayer: boolean): Omit<Scene, 'banner' | 'bannerAlpha' | 'pad'> {
     const left = showPlayer ? timeLeft(g) : 0;
     return {
       echoes: g.echoes,
