@@ -1,3 +1,4 @@
+import type { SessionEvent } from '../game/session.ts';
 import type { KeyValueStore } from '../storage.ts';
 
 const SCALE = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24];
@@ -45,19 +46,28 @@ export class Audio {
     o.stop(t0 + dur + 0.02);
   }
 
-  pickup(n: number): void {
+  /** Plays the sound for each event; the death card and anything else stay silent. */
+  play(events: readonly SessionEvent[]): void {
+    for (const ev of events) {
+      if (ev.type === 'collect') this.pickup(ev.n);
+      else if (ev.type === 'erase') this.erase();
+      else if (ev.type === 'die') this.death();
+    }
+  }
+
+  private pickup(n: number): void {
     const base = 330 * Math.pow(2, (SCALE[n % SCALE.length] ?? 0) / 12);
     this.tone(base, 0, 0.12, 'triangle', 0.08);
     this.tone(base * 1.5, 0.06, 0.18, 'triangle', 0.06);
     this.tone(base / 2, 0.1, 0.35, 'sine', 0.04, base / 4); // the echo being born
   }
 
-  erase(): void {
+  private erase(): void {
     this.tone(880, 0, 0.25, 'sine', 0.06, 220);
     this.tone(1320, 0.03, 0.2, 'triangle', 0.03, 330);
   }
 
-  death(): void {
+  private death(): void {
     this.tone(220, 0, 0.6, 'sawtooth', 0.06, 40);
     this.tone(110, 0.02, 0.5, 'square', 0.03, 30);
   }

@@ -6,6 +6,7 @@ import { Session, type Hud, type Mode, type Press, type SessionEvent } from './g
 import { Input } from './input/input.ts';
 import { Steering } from './input/steering.ts';
 import { Effects } from './render/particles.ts';
+import { readPalette } from './render/palette.ts';
 import { Renderer } from './render/renderer.ts';
 import { ScreenLayout } from './render/screenLayout.ts';
 import type { Layout, PadSide, Rect } from './render/view.ts';
@@ -41,11 +42,11 @@ const store = browserStore;
 const session = new Session({ store, today: () => dateKey(), randomSeed: () => (Math.random() * 2 ** 32) >>> 0 });
 const steering = new Steering();
 new Input(stage, steering);
-const renderer = new Renderer(byId<HTMLCanvasElement>('cv'));
+const palette = readPalette();
+const renderer = new Renderer(byId<HTMLCanvasElement>('cv'), palette);
 const audio = new Audio(store);
-const fx = new Effects();
+const fx = new Effects({ palette, reduceMotion: matchMedia('(prefers-reduced-motion: reduce)').matches, random: Math.random });
 const overlay = new Overlay(overlayEl);
-const C = renderer.colors;
 
 // ---------- Layout ----------
 // A null rect hands placement back to the stylesheet. Measures from the parent, not offsetParent,
@@ -166,23 +167,10 @@ stage.addEventListener('pointerdown', () => {
 
 // ---------- Session events ----------
 function handle(events: SessionEvent[]): void {
+  fx.play(events);
+  audio.play(events);
   for (const ev of events) {
-    if (ev.type === 'collect') {
-      fx.burst(ev.at.x, ev.at.y, C.orb, 26);
-      fx.burst(ev.at.x, ev.at.y, C.echo, 14, 160);
-      fx.flash = 1;
-      audio.pickup(ev.n);
-    } else if (ev.type === 'erase') {
-      fx.burst(ev.at.x, ev.at.y, C.erase, 30, 220);
-      audio.erase();
-    } else if (ev.type === 'die') {
-      fx.burst(ev.at.x, ev.at.y, C.danger, 44, 340);
-      fx.burst(ev.at.x, ev.at.y, C.self, 20, 200);
-      fx.kick(18);
-      audio.death();
-    } else {
-      overlay.showDeath(ev.result, { again: () => startRun(ev.result.mode), replay: startReplay, menu: showTitle });
-    }
+    if (ev.type === 'card') overlay.showDeath(ev.result, { again: () => startRun(ev.result.mode), replay: startReplay, menu: showTitle });
   }
 }
 
