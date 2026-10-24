@@ -22,7 +22,7 @@ Tests use Vitest in a Node environment and live in `tests/`, mirroring the `src/
 
 ## Commit & Pull Request Guidelines
 
-Use [Conventional Commits](https://www.conventionalcommits.org/): `type(scope): summary`, with an imperative, lowercase summary and no trailing period (for example, `feat(audio): add eraser pickup sound`). Types: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `build`, `ci`, `chore`. The scope is optional and names the area touched, such as `sim`, `replay`, `session`, `render`, or `agents`. Mark breaking changes with `!` after the type or scope. Keep each commit focused. Pull requests should describe the behavior change, list verification commands, and include a screenshot or clip for visible changes.
+Use [Conventional Commits](https://www.conventionalcommits.org/): `type(scope): summary`, with an imperative, lowercase summary and no trailing period (for example, `feat(audio): add eraser pickup sound`). Types: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `build`, `ci`, `chore`. The scope is optional and names the area touched, such as `sim`, `replay`, `session`, `render`, or `agents`. Mark breaking changes with `!` after the type or scope. Keep each commit focused. Pull requests should describe the behavior change, list verification commands, and include a screenshot or clip for visible changes; `.github/pull_request_template.md` lays this out. PRs are squash-merged, so the PR title becomes the commit on `main` and must also be a Conventional Commit; the `check` job in `.github/workflows/ci.yml` enforces this alongside lint, test, and build, and `main` requires it to pass.
 
 ## Agent skills
 
