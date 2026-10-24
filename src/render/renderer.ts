@@ -2,7 +2,7 @@ import { ECHO_R, ERASER_R, ORB_R, PLAYER_R, WORLD_H, WORLD_W } from '../game/con
 import type { Scene } from '../game/scene.ts';
 import type { Stick } from '../input/steering.ts';
 import type { Effects } from './particles.ts';
-import { bannerBox, wrapText, type Layout, type Rect, type Size } from './view.ts';
+import { wrapText, type Layout, type Rect, type Size } from './view.ts';
 
 /** What the steering pad shows: the joystick, a prompt such as "Tap to skip", or nothing. */
 export type PadView = { kind: 'steer'; stick: Stick } | { kind: 'prompt'; label: string } | null;
@@ -68,14 +68,10 @@ export class Renderer {
 
     const sh = fx.offset();
     ctx.save();
-    const { rotated, scale, offsetX, offsetY } = layout.view;
-    if (rotated) {
-      ctx.translate(offsetX + WORLD_H * scale + sh.x, offsetY + sh.y);
-      ctx.rotate(Math.PI / 2);
-    } else {
-      ctx.translate(offsetX + sh.x, offsetY + sh.y);
-    }
-    ctx.scale(scale, scale);
+    const { view } = layout;
+    const m = view.transform;
+    ctx.translate(sh.x, sh.y);
+    ctx.transform(m.a, m.b, m.c, m.d, m.e, m.f);
 
     // Arena
     ctx.fillStyle = C.ink;
@@ -167,7 +163,7 @@ export class Renderer {
           ctx.fillStyle = C.ink;
           ctx.save();
           ctx.translate(e.x, e.y);
-          if (rotated) ctx.rotate(-Math.PI / 2);
+          ctx.rotate(view.uprightTurn);
           ctx.fillText(String(e.n), 0, 0.5);
           ctx.restore();
         }
@@ -216,7 +212,7 @@ export class Renderer {
     ctx.restore();
 
     if (scene.banner && scene.bannerAlpha > 0) {
-      const box = bannerBox(layout.arena, scale);
+      const box = view.bannerBox();
       ctx.globalAlpha = scene.bannerAlpha;
       ctx.fillStyle = C.muted;
       ctx.font = `600 ${box.fontSize}px "IBM Plex Mono", monospace`;

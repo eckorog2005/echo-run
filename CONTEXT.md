@@ -20,6 +20,10 @@ _Avoid_: Map, layout, level
 The fixed playfield every run shares, the same size on every device, so a Course means the same thing for every player. How it is drawn (scale, orientation) is a display matter and never changes a run.
 _Avoid_: World (the code's name for its coordinates), board, map, level
 
+**Arena view**:
+How the arena is drawn on the stage (its scale, position, and whether it is turned a quarter clockwise on a portrait phone) and the mapping between arena and stage both ways. Drawing and steering both go through it, so a drag toward something on the screen steers toward it in the arena.
+_Avoid_: Camera, viewport, projection
+
 **Screen layout**:
 Where the HUD, arena, timer, and steering pad sit on the player's screen, worked out from the screen size, whether it is a touch phone, and the pad side. Purely a display matter: it never changes a run.
 _Avoid_: Layout on its own (it reads as the Course)

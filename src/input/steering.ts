@@ -1,5 +1,5 @@
 import type { Vec } from '../game/model.ts';
-import type { Layout } from '../render/view.ts';
+import type { ArenaView, Layout } from '../render/view.ts';
 import { JOY_R, Joystick } from './joystick.ts';
 
 type Key = 'l' | 'r' | 'u' | 'd';
@@ -22,7 +22,7 @@ export class Steering {
   private readonly joy = new Joystick();
   private readonly keys = new Set<Key>();
   private playing = false;
-  private rotated = false;
+  private view: ArenaView | null = null;
 
   get stick(): Stick {
     const { bx, by, x, y, active } = this.joy;
@@ -64,7 +64,7 @@ export class Steering {
   relayout(next: Layout): void {
     this.joy.cancel();
     this.joy.confine(next.pad);
-    this.rotated = next.view.rotated;
+    this.view = next.view;
   }
 
   direction(playing: boolean): Vec {
@@ -74,8 +74,7 @@ export class Steering {
       return { x: 0, y: 0 };
     }
     const v = this.screenDirection();
-    // 0 - x rather than -x so zero stays +0, not -0.
-    return this.rotated ? { x: v.y, y: 0 - v.x } : v;
+    return this.view ? this.view.directionToArena(v) : v;
   }
 
   private screenDirection(): Vec {
