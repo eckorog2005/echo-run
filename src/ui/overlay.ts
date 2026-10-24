@@ -1,9 +1,14 @@
 import type { RunResult, TitleInfo } from '../game/session.ts';
 import { parsePadSide, type PadSide } from '../render/view.ts';
+import { deathCard, titleCard, type Button, type DeathAction, type TitleAction } from './cards.ts';
 
-type Actions = Record<string, () => void>;
+const BUTTON_CLASS: Record<Button<string>['style'], string> = { primary: 'primary', secondary: 'secondary', ghost: 'ghost-btn' };
 
-const plural = (n: number, word: string, many = `${word}s`): string => `${n} ${n === 1 ? word : many}`;
+function buttons<A extends string>(list: readonly Button<A>[]): string {
+  return list
+    .map((b) => `<button class="${BUTTON_CLASS[b.style]}" type="button" data-action="${b.action}">${b.label}</button>`)
+    .join('\n        ');
+}
 
 function shareBlock(line: string): string {
   return `
@@ -31,13 +36,14 @@ export class Overlay {
     this.el.hidden = true;
   }
 
-  private show(html: string, actions: Actions, kind: 'title' | 'death'): void {
+  private show<A extends string>(html: string, actions: Record<A, () => void>, kind: 'title' | 'death'): void {
     this.el.innerHTML = `<div class="card ${kind}">${html}</div>`;
     this.el.hidden = false;
     this.el.scrollTop = 0;
     this.el.querySelectorAll<HTMLButtonElement>('[data-action]').forEach((btn) => {
       const name = btn.dataset.action ?? '';
-      btn.addEventListener('click', name === 'copy' ? () => this.copy(btn) : () => actions[name]?.());
+      const run = (actions as Record<string, (() => void) | undefined>)[name];
+      btn.addEventListener('click', name === 'copy' ? () => this.copy(btn) : () => run?.());
     });
   }
 
@@ -59,30 +65,27 @@ export class Overlay {
     );
   }
 
-  showTitle(info: TitleInfo, actions: Actions, padSide: { side: PadSide; choose: (side: PadSide) => void } | null): void {
-    const played = info.daily;
-    const dailySection = played
-      ? `<p>Today's run: <strong>${plural(played.score, 'orb')}</strong>. A new course unlocks tomorrow.</p>
-         ${info.shareLine ? shareBlock(info.shareLine) : ''}`
+  showTitle(info: TitleInfo, actions: Record<TitleAction, () => void>, padSide: { side: PadSide; choose: (side: PadSide) => void } | null): void {
+    const card = titleCard(info);
+    const dailySection = card.todayScore
+      ? `<p>Today's run: <strong>${card.todayScore}</strong>. A new course unlocks tomorrow.</p>
+         ${card.shareLine ? shareBlock(card.shareLine) : ''}`
       : `<p>Today's course is the same for everyone. Your first daily run is the one that counts.</p>`;
+    const legend = card.legend.map((l) => `<li><span class="dot ${l.dot}"></span><span>${l.text}</span></li>`).join('\n        ');
     this.show(
       `
       <h2>Outrun <em>yourself.</em></h2>
       <p>Grab the orb. The route you took to reach it comes back as an <strong>echo</strong> that keeps repeating. Touch any echo and the run is over.</p>
       <ul class="legend">
-        <li><span class="dot self"></span><span>You</span></li>
-        <li><span class="dot echo"></span><span>Your echoes, copying every move you made</span></li>
-        <li><span class="dot orb"></span><span>The orb. Reach it within 7 seconds</span></li>
-        <li><span class="dot erase"></span><span>Every 5th round: an eraser that deletes your oldest echo</span></li>
+        ${legend}
       </ul>
       <div class="daily">
-        <small>Daily · ${info.today}</small>
+        <small>Daily · ${card.today}</small>
         ${dailySection}
       </div>
       ${padSide ? padSideToggle(padSide.side) : ''}
       <div class="row">
-        <button class="primary" type="button" data-action="daily">${played ? 'Practice daily' : 'Daily run'}</button>
-        <button class="secondary" type="button" data-action="endless">Endless</button>
+        ${buttons(card.buttons)}
         <span class="hint">or press <kbd>Space</kbd></span>
       </div>`,
       actions,
@@ -102,32 +105,21 @@ export class Overlay {
     }
   }
 
-  showDeath(info: RunResult, actions: Actions): void {
-    const badge = {
-      counted: '<span class="badge">Daily result saved</span>',
-      practice: '<span class="badge muted">Practice run</span>',
-      newBest: '<span class="badge">New best</span>',
-      plain: '',
-    }[info.outcome.kind];
-    const reason = info.cause.kind === 'echo' ? `Caught by echo #${info.cause.n}` : 'Out of time';
-    const shareLine = info.outcome.kind === 'counted' ? info.outcome.shareLine : null;
-    const made = info.score === 0 ? 'No orbs this time.' : `You made ${plural(info.score, 'echo', 'echoes')}`;
-    const erasedNote = info.erased > 0 ? ` and erased ${info.erased}` : '';
-    const lead = info.cause.kind === 'time' ? 'The orb fades after 7 seconds. ' : '';
-    const bestNote = info.mode === 'endless' ? ` Best: <strong>${info.best}</strong>.` : '';
+  showDeath(result: RunResult, actions: Record<DeathAction, () => void>): void {
+    const card = deathCard(result);
+    const badge = card.badge ? `<span class="badge${card.badge.muted ? ' muted' : ''}">${card.badge.text}</span>` : '';
+    const best = card.best === null ? '' : ` Best: <strong>${card.best}</strong>.`;
     this.show(
       `
       <div class="headline">
         ${badge}
-        <h2>${reason}</h2>
-        <div class="big">${info.score}</div>
+        <h2>${card.headline}</h2>
+        <div class="big">${card.score}</div>
       </div>
-      <p>${lead}${made}${info.score === 0 ? '' : `${erasedNote}.`}${bestNote}</p>
-      ${shareLine ? shareBlock(shareLine) : ''}
+      <p>${card.summary}${best}</p>
+      ${card.shareLine ? shareBlock(card.shareLine) : ''}
       <div class="row">
-        <button class="primary" type="button" data-action="again">Run again</button>
-        <button class="secondary" type="button" data-action="replay">Watch replay</button>
-        <button class="ghost-btn" type="button" data-action="menu">Menu</button>
+        ${buttons(card.buttons)}
       </div>
       <span class="hint"><kbd>Space</kbd> runs again</span>`,
       actions,

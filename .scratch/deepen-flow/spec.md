@@ -18,7 +18,7 @@ Nothing changes for the player. Behind that:
 
 - The **arena view** becomes a module that owns the mapping between the arena and the stage both ways. The Renderer applies its transform, upright text anchor, and banner box; Steering asks it to turn a stage direction into an arena direction.
 - The **Session** owns the screen-dependent input rules and returns what a confirm or skip press should do, including the title card's main button. The Scene says what the steering pad shows. The main loop's effects filter goes away.
-- A DOM-free **cards** module turns a run result or title info into card content with typed actions. The Overlay only renders it.
+- A DOM-free **cards** module turns a run result or title info into card content with typed actions; which button Space presses stays with the Session. The Overlay only renders it.
 - **Effects** and **Audio** each take the step events and decide their own response, using a shared palette. Effects takes its reduce-motion setting and randomness as dependencies.
 
 ## User Stories
@@ -56,7 +56,7 @@ Four changes, one PR each, in order: arena view, screen flow, cards, run feedbac
 - The pad-side toggle stays a screen layout matter in the main loop and ScreenLayout; the Session stays free of layout.
 
 **Cards** (`src/ui/cards.ts`, `src/ui/overlay.ts`)
-- A DOM-free module turns a `RunResult` or `TitleInfo` into card content: headline, badge, body, buttons, and the main action.
+- A DOM-free module turns a `RunResult` or `TitleInfo` into card content: headline, badge, body, legend, and buttons. Which button Space presses stays with the Session (see Screen flow).
 - Actions are typed per card: `daily | endless` for the title card, `again | replay | menu` for the death card. The main loop passes handlers keyed by those types.
 - The round length and eraser cadence in the text come from `ROUND_TICKS`, `TICK`, and `ERASER_EVERY`.
 - The Overlay keeps the HTML, button wiring, copy-to-clipboard, and the pad-side toggle.
@@ -71,7 +71,7 @@ Four changes, one PR each, in order: arena view, screen flow, cards, run feedbac
 - Tests go through each module's interface, the one the main loop uses. When behaviour moves behind a new interface, rewrite its tests there and delete the old ones.
 - **Arena view**: arena-to-stage and back is the identity; the corners land on the arena rect; the stage direction from a point's drawn position toward another point's drawn position maps to the arena direction between them, upright and rotated; zero stays `+0`; text drawn with the upright turn reads upright on the stage; the banner box tests move onto it. The Steering tests stay as they are, since they describe what the player feels. The layout rectangle tests stay.
 - **Screen flow**: through the Session: confirm and skip on each screen; the title main action before and after the counted attempt; the Scene's pad content per screen; a replay emits no `collect`, `erase`, or `die`.
-- **Cards**: each Outcome's badge, each death cause's headline, the erased and best notes, the main action per card, and the numbers matching the constants.
+- **Cards**: each Outcome's badge, each death cause's headline, the erased and best notes, the buttons per card, and the numbers matching the constants.
 - **Effects**: built with a fixed random source and a reduce-motion flag: a death shakes, reduce-motion stops the shake, a collect flashes, and particles fade out. Audio stays untested; its only adapter is WebAudio.
 
 ## Out of Scope
