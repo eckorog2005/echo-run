@@ -74,19 +74,23 @@ export class Overlay {
     const legend = card.legend.map((l) => `<li><span class="dot ${l.dot}"></span><span>${l.text}</span></li>`).join('\n        ');
     this.show(
       `
-      <h2>Outrun <em>yourself.</em></h2>
-      <p>Grab the orb. The route you took to reach it comes back as an <strong>echo</strong> that keeps repeating. Touch any echo and the run is over.</p>
-      <ul class="legend">
-        ${legend}
-      </ul>
-      <div class="daily">
-        <small>Daily · ${card.today}</small>
-        ${dailySection}
+      <div class="rules">
+        <h2>Outrun <em>yourself.</em></h2>
+        <p>Grab the orb. The route you took to reach it comes back as an <strong>echo</strong> that keeps repeating. Touch any echo and the run is over.</p>
+        <ul class="legend">
+          ${legend}
+        </ul>
       </div>
-      ${padSide ? padSideToggle(padSide.side) : ''}
-      <div class="row">
-        ${buttons(card.buttons)}
-        <span class="hint">or press <kbd>Space</kbd></span>
+      <div class="play">
+        <div class="daily">
+          <small>Daily · ${card.today}</small>
+          ${dailySection}
+        </div>
+        ${padSide ? padSideToggle(padSide.side) : ''}
+        <div class="row">
+          ${buttons(card.buttons)}
+          <span class="hint">or press <kbd>Space</kbd></span>
+        </div>
       </div>`,
       actions,
       'title',

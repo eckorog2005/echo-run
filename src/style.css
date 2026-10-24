@@ -61,6 +61,13 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
   background: color-mix(in srgb, var(--ink) 62%, transparent);
 }
 .card { max-width: 420px; width: 100%; display: flex; flex-direction: column; gap: 14px; }
+.rules, .play { display: contents; }
+.app:not(.phone) .card {
+  max-width: 500px; margin: auto; padding: 24px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: 0 16px 40px color-mix(in srgb, var(--ink) 70%, transparent);
+}
+.app:not(.phone) .card .hint { margin-left: auto; }
 .card h2 { font-family: var(--display); font-weight: 800; font-size: clamp(26px, 6vw, 38px); line-height: 1.05; margin: 0; text-wrap: balance; }
 .card h2 em { font-style: normal; color: var(--echo); }
 .card p { margin: 0; color: var(--muted); line-height: 1.6; font-size: 13px; }
@@ -157,7 +164,7 @@ footer { font-size: 11px; color: var(--muted); display: flex; justify-content: s
 }
 .app.phone .card h2 { font-size: 26px; }
 /* Pinned so the actions stay in thumb reach while a tall sheet scrolls. */
-.app.phone .card > .row {
+.app.phone .card .row {
   position: sticky; bottom: env(safe-area-inset-bottom, 0px); background: var(--panel); padding-top: 8px;
   /* Fills the home-indicator strip below the pinned row so scrolled text can't show through it. */
   box-shadow: 0 env(safe-area-inset-bottom, 0px) 0 var(--panel);
@@ -197,6 +204,20 @@ footer { font-size: 11px; color: var(--muted); display: flex; justify-content: s
 .app.phone.landscape #timer-label { display: none; }
 .app.phone.landscape #timer-round { display: inline; }
 .app.phone.landscape .card { width: min(100%, 560px); align-self: center; border-inline: 1px solid var(--line); }
+/* The title card is too tall to stack in landscape, so it floats centred in two columns: rules beside the daily status and actions. */
+.app.phone.landscape .card.title {
+  width: min(100% - 16px, 620px); max-height: calc(100% - 16px); margin: auto;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start;
+  border: 1px solid var(--line); border-radius: 16px; padding: 16px;
+}
+.app.phone.landscape .card.title .rules, .app.phone.landscape .card.title .play { display: flex; flex-direction: column; gap: 10px; }
+.app.phone.landscape .card.title h2 { font-size: 22px; }
+.app.phone.landscape .card.title p, .app.phone.landscape .card.title .legend { font-size: 12px; line-height: 1.45; }
+.app.phone.landscape .card.title .legend { gap: 6px; }
+.app.phone.landscape .card.title .daily, .app.phone.landscape .card.title .pad-side { padding-top: 10px; }
+.app.phone.landscape .card.title .daily { border-top: 0; padding-top: 0; }
+.app.phone.landscape .card.title .row { bottom: 0; box-shadow: none; flex-wrap: nowrap; gap: 8px; }
+.app.phone.landscape .card.title .row button { flex: 1; padding: 0 12px; white-space: nowrap; }
 /* After a death the pad is idle, so the sheet sits over the pad's corner and leaves most of the arena in view. */
 .app.phone.landscape .card.death { width: min(100%, 380px); align-self: flex-end; }
 .app.phone.landscape.pad-left .card.death { align-self: flex-start; }
