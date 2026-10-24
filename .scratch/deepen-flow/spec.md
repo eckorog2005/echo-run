@@ -1,6 +1,6 @@
 # Spec: Deepen the arena view, screen flow, cards, and run feedback
 
-Status: ready-for-agent
+Status: resolved
 
 ## Problem Statement
 

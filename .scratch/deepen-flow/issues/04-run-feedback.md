@@ -4,9 +4,9 @@
 
 **Blocked by:** 03 (Card content)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] The main loop no longer reads the palette or sets Effects' fields
 - [x] Effects tested in Node: a death shakes, reduce-motion stops the shake, a collect flashes, particles fade
-- [ ] Bursts, flash, shake, and sounds look and sound as before
+- [x] Bursts, flash, shake, and sounds look and sound as before
 - [x] `npm run lint`, `npm test`, and `npm run build` pass
