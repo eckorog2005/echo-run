@@ -6,7 +6,7 @@ import { Session, type Hud, type Mode, type Press, type SessionEvent } from './g
 import { Input } from './input/input.ts';
 import { Steering } from './input/steering.ts';
 import { Effects } from './render/particles.ts';
-import { readPalette } from './render/palette.ts';
+import { PALETTE } from './render/palette.ts';
 import { Renderer } from './render/renderer.ts';
 import { ScreenLayout } from './render/screenLayout.ts';
 import type { Layout, PadSide, Rect } from './render/view.ts';
@@ -42,10 +42,9 @@ const store = browserStore;
 const session = new Session({ store, today: () => dateKey(), randomSeed: () => (Math.random() * 2 ** 32) >>> 0 });
 const steering = new Steering();
 new Input(stage, steering);
-const palette = readPalette();
-const renderer = new Renderer(byId<HTMLCanvasElement>('cv'), palette);
+const renderer = new Renderer(byId<HTMLCanvasElement>('cv'), PALETTE);
 const audio = new Audio(store);
-const fx = new Effects({ palette, reduceMotion: matchMedia('(prefers-reduced-motion: reduce)').matches, random: Math.random });
+const fx = new Effects({ palette: PALETTE, reduceMotion: matchMedia('(prefers-reduced-motion: reduce)').matches, random: Math.random });
 const overlay = new Overlay(overlayEl);
 
 // ---------- Layout ----------

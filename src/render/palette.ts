@@ -1,11 +1,18 @@
 export type Palette = Record<'ink' | 'panel' | 'line' | 'text' | 'muted' | 'self' | 'echo' | 'orb' | 'danger' | 'erase', string>;
 
-/** Reads the colours from the stylesheet's custom properties, so the canvas matches the page. */
-export function readPalette(): Palette {
-  const css = getComputedStyle(document.documentElement);
-  const read = (k: string): string => css.getPropertyValue(`--${k}`).trim();
-  return {
-    ink: read('ink'), panel: read('panel'), line: read('line'), text: read('text'), muted: read('muted'),
-    self: read('self'), echo: read('echo'), orb: read('orb'), danger: read('danger'), erase: read('erase'),
-  };
-}
+/**
+ * The canvas colours, matching the custom properties on `:root` in style.css. Not read from the stylesheet,
+ * because on a cold load the game can start before it has loaded, and empty colours draw as black.
+ */
+export const PALETTE: Palette = {
+  ink: '#0c1320',
+  panel: '#121c2c',
+  line: '#22314a',
+  text: '#e8edf6',
+  muted: '#8494ac',
+  self: '#ff9b71',
+  echo: '#a99bff',
+  orb: '#ffd166',
+  danger: '#ff5d73',
+  erase: '#5ee6d0',
+};
