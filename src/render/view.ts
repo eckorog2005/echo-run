@@ -1,10 +1,84 @@
 import { WORLD_H, WORLD_W } from '../game/constants.ts';
+import type { Vec } from '../game/model.ts';
 
-export interface ArenaView {
-  rotated: boolean;
-  scale: number;
-  offsetX: number;
-  offsetY: number;
+const BANNER_TOP = 28;
+const BANNER_INSET = 24;
+const BANNER_FONT = 14;
+const BANNER_LINE = 18;
+
+/** A 2D affine transform in canvas `setTransform` order: x' = a·x + c·y + e, y' = b·x + d·y + f. */
+export interface Matrix {
+  a: number;
+  b: number;
+  c: number;
+  d: number;
+  e: number;
+  f: number;
+}
+
+/**
+ * How the arena is drawn on the stage, and the mapping between arena and stage both ways.
+ * Rotated means turned a quarter clockwise, so the arena's top edge runs down the stage's right side.
+ */
+export class ArenaView {
+  constructor(
+    readonly rotated: boolean,
+    readonly scale: number,
+    readonly offsetX: number,
+    readonly offsetY: number,
+  ) {}
+
+  /** Arena units to stage pixels; everything else here is derived from it. */
+  get transform(): Matrix {
+    const { rotated, scale: s, offsetX, offsetY } = this;
+    return rotated
+      ? { a: 0, b: s, c: -s, d: 0, e: offsetX + WORLD_H * s, f: offsetY }
+      : { a: s, b: 0, c: 0, d: s, e: offsetX, f: offsetY };
+  }
+
+  toStage(p: Vec): Vec {
+    const { a, b, c, d, e, f } = this.transform;
+    return { x: a * p.x + c * p.y + e, y: b * p.x + d * p.y + f };
+  }
+
+  toArena(p: Vec): Vec {
+    const { e, f } = this.transform;
+    const v = this.directionToArena({ x: p.x - e, y: p.y - f });
+    return { x: v.x / this.scale, y: v.y / this.scale };
+  }
+
+  /** Turns a direction on the stage into the arena direction drawn that way, keeping its length. */
+  directionToArena(v: Vec): Vec {
+    const { a, b, c, d } = this.transform;
+    const det = (a * d - b * c) / this.scale;
+    // `|| 0` keeps a zero component +0, so a still stick stays exactly { x: 0, y: 0 }.
+    return { x: (d * v.x - c * v.y) / det || 0, y: (a * v.y - b * v.x) / det || 0 };
+  }
+
+  /** The angle to turn by inside the arena transform so that text reads upright on the stage. */
+  get uprightTurn(): number {
+    return -Math.atan2(this.transform.b, this.transform.a);
+  }
+
+  /** The arena as the player sees it, in stage pixels. */
+  get rect(): Rect {
+    const width = (this.rotated ? WORLD_H : WORLD_W) * this.scale;
+    const height = (this.rotated ? WORLD_W : WORLD_H) * this.scale;
+    return { x: this.offsetX, y: this.offsetY, width, height };
+  }
+
+  /** Where the banner goes, in stage pixels, along the top edge as the player sees it, sized in arena units. */
+  bannerBox(): BannerBox {
+    const { x, y, width } = this.rect;
+    const s = this.scale;
+    return {
+      x: x + width / 2,
+      y: y + BANNER_TOP * s,
+      maxWidth: width - BANNER_INSET * 2 * s,
+      fontSize: BANNER_FONT * s,
+      lineHeight: BANNER_LINE * s,
+    };
+  }
 }
 
 export interface Size {
@@ -74,7 +148,7 @@ function portraitPhone(stage: Size): Regions {
   const padY = timer.y + TIMER_H + PHONE_GAP;
   const pad = { x: MARGIN, y: padY, width, height: Math.max(0, stage.height - padY) };
   const sheet = { x: 0, y: HUD_H, width: stage.width, height: stage.height - HUD_H };
-  return { kind: 'portrait', hud, arena, timer, pad, sheet, view: { rotated: true, scale, offsetX: arena.x, offsetY: arena.y } };
+  return { kind: 'portrait', hud, arena, timer, pad, sheet, view: new ArenaView(true, scale, arena.x, arena.y) };
 }
 
 function landscapePhone(stage: Size, padSide: PadSide): Regions {
@@ -96,7 +170,7 @@ function landscapePhone(stage: Size, padSide: PadSide): Regions {
   const sheet = padSide === 'right'
     ? { x: hudEnd, y: 0, width: stage.width - hudEnd, height: stage.height }
     : { x: 0, y: 0, width: hudX, height: stage.height };
-  return { kind: 'landscape', hud, arena, timer, pad, sheet, view: { rotated: false, scale, offsetX: arena.x, offsetY: arena.y } };
+  return { kind: 'landscape', hud, arena, timer, pad, sheet, view: new ArenaView(false, scale, arena.x, arena.y) };
 }
 
 function fitArena(stage: Size): { arena: Rect; view: ArenaView } {
@@ -110,32 +184,15 @@ function fitArena(stage: Size): { arena: Rect; view: ArenaView } {
   const height = (rotated ? WORLD_W : WORLD_H) * scale;
   const x = (stage.width - width) / 2;
   const y = (stage.height - height) / 2;
-  return { arena: { x, y, width, height }, view: { rotated, scale, offsetX: x, offsetY: y } };
+  return { arena: { x, y, width, height }, view: new ArenaView(rotated, scale, x, y) };
 }
 
-const BANNER_TOP = 28;
-const BANNER_INSET = 24;
-const BANNER_FONT = 14;
-const BANNER_LINE = 18;
-
-/** Where the banner goes, in stage pixels, sized in arena units like everything else in the arena. */
 export interface BannerBox {
   x: number;
   y: number;
   maxWidth: number;
   fontSize: number;
   lineHeight: number;
-}
-
-// The arena rect is already in screen orientation, so this is the top edge as the player sees it, rotated or not.
-export function bannerBox(arena: Rect, scale: number): BannerBox {
-  return {
-    x: arena.x + arena.width / 2,
-    y: arena.y + BANNER_TOP * scale,
-    maxWidth: arena.width - BANNER_INSET * 2 * scale,
-    fontSize: BANNER_FONT * scale,
-    lineHeight: BANNER_LINE * scale,
-  };
 }
 
 export function wrapText(text: string, maxWidth: number, measure: (line: string) => number): string[] {

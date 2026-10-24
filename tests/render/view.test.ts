@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { bannerBox, isPhone, layout, wrapText, type ArenaView, type Rect } from '../../src/render/view.ts';
+import { WORLD_H, WORLD_W } from '../../src/game/constants.ts';
+import type { Vec } from '../../src/game/model.ts';
+import { isPhone, layout, wrapText, type ArenaView, type Rect } from '../../src/render/view.ts';
 
 const view = (width: number, height: number): ArenaView => layout({ width, height }, false, 'right').view;
 
@@ -178,20 +180,79 @@ describe('isPhone', () => {
   });
 });
 
-describe('bannerBox', () => {
+describe('ArenaView.bannerBox', () => {
   it('centres the banner along the top of the upright arena, where it always was', () => {
     const l = layout({ width: 1024, height: 724 }, false, 'right');
-    expect(bannerBox(l.arena, l.view.scale)).toEqual({ x: 512, y: 40, maxWidth: 952, fontSize: 14, lineHeight: 18 });
+    expect(l.view.bannerBox()).toEqual({ x: 512, y: 40, maxWidth: 952, fontSize: 14, lineHeight: 18 });
   });
 
   it('centres the banner along the top of the rotated arena as the player sees it, not along its right side', () => {
     const l = layout({ width: 390, height: 763 }, true, 'right');
-    const box = bannerBox(l.arena, l.view.scale);
+    const box = l.view.bannerBox();
     const s = 366 / 700;
     expect(box.x).toBeCloseTo(195, 5);
     expect(box.y).toBeCloseTo(54 + 28 * s, 5);
     expect(box.maxWidth).toBeCloseTo(366 - 48 * s, 5);
     expect(box.fontSize).toBeCloseTo(14 * s, 5);
+  });
+});
+
+describe('ArenaView', () => {
+  const upright = layout({ width: 1024, height: 724 }, false, 'right');
+  const rotated = layout({ width: 390, height: 763 }, true, 'right');
+  const views = [['upright', upright], ['rotated', rotated]] as const;
+  const corners: Vec[] = [{ x: 0, y: 0 }, { x: WORLD_W, y: 0 }, { x: 0, y: WORLD_H }, { x: WORLD_W, y: WORLD_H }];
+
+  const expectClose = (actual: Vec, expected: Vec): void => {
+    expect(actual.x).toBeCloseTo(expected.x, 6);
+    expect(actual.y).toBeCloseTo(expected.y, 6);
+  };
+
+  it.each(views)('maps arena to stage and back to where it started (%s)', (_, l) => {
+    for (const p of [...corners, { x: 123, y: 456 }]) expectClose(l.view.toArena(l.view.toStage(p)), p);
+  });
+
+  it.each(views)('draws the arena corners on the corners of the arena rect (%s)', (_, l) => {
+    const drawn = corners.map((p) => l.view.toStage(p));
+    const xs = drawn.map((p) => p.x), ys = drawn.map((p) => p.y);
+    expect(Math.min(...xs)).toBeCloseTo(l.arena.x, 6);
+    expect(Math.min(...ys)).toBeCloseTo(l.arena.y, 6);
+    expect(Math.max(...xs)).toBeCloseTo(l.arena.x + l.arena.width, 6);
+    expect(Math.max(...ys)).toBeCloseTo(l.arena.y + l.arena.height, 6);
+    expect(l.view.rect).toEqual(l.arena);
+  });
+
+  it('turns the arena a quarter clockwise on a portrait phone, so its top edge runs down the right side', () => {
+    const v = rotated.view;
+    const a = rotated.arena;
+    expectClose(v.toStage({ x: 0, y: 0 }), { x: a.x + a.width, y: a.y });
+    expectClose(v.toStage({ x: WORLD_W, y: 0 }), { x: a.x + a.width, y: a.y + a.height });
+  });
+
+  // This is what keeps steering and drawing in agreement: dragging toward where a point is drawn steers toward it.
+  it.each(views)('maps a stage direction toward a drawn point to the arena direction toward that point (%s)', (_, l) => {
+    const from = { x: 500, y: 350 };
+    for (const to of [{ x: 700, y: 350 }, { x: 500, y: 100 }, { x: 300, y: 600 }]) {
+      const a = l.view.toStage(from), b = l.view.toStage(to);
+      const len = Math.hypot(b.x - a.x, b.y - a.y);
+      const dir = l.view.directionToArena({ x: (b.x - a.x) / len, y: (b.y - a.y) / len });
+      const want = Math.hypot(to.x - from.x, to.y - from.y);
+      expectClose(dir, { x: (to.x - from.x) / want, y: (to.y - from.y) / want });
+    }
+  });
+
+  it.each(views)('keeps a still direction exactly zero, never -0 (%s)', (_, l) => {
+    expect(l.view.directionToArena({ x: 0, y: 0 })).toEqual({ x: 0, y: 0 });
+    expect(Object.is(l.view.directionToArena({ x: 0, y: 0 }).x, 0)).toBe(true);
+    expect(Object.is(l.view.directionToArena({ x: 0, y: 0 }).y, 0)).toBe(true);
+  });
+
+  it.each(views)('turns text inside the arena so it reads upright on the stage (%s)', (_, l) => {
+    const { a, b, c, d } = l.view.transform;
+    const turn = l.view.uprightTurn;
+    const baseline = { x: a * Math.cos(turn) + c * Math.sin(turn), y: b * Math.cos(turn) + d * Math.sin(turn) };
+    expect(baseline.x).toBeGreaterThan(0);
+    expect(baseline.y).toBeCloseTo(0, 9);
   });
 });
 
