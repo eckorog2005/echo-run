@@ -3,7 +3,7 @@
 Grab the orb. The route you took to reach it comes back as an echo that keeps repeating. Touch any echo and the run is over.
 
 ```sh
-nvm use          # Node version from .nvmrc
+nvm use          # Node 26, from .nvmrc
 npm install
 npm run dev      # play at http://localhost:5173
 npm test
